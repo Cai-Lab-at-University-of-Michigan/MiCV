@@ -4,6 +4,7 @@ import anndata as ad
 import scanpy as sc
 sc.settings.autoshow = False
 
+from app import cache
 
 def preprocess_data(data_dir=None,
                     min_cells=2, min_genes=200, max_genes=10000,
@@ -48,12 +49,10 @@ def do_PCA(adata, n_comps=50, random_state=0):
     sc.tl.pca(adata, svd_solver="arpack", 
               n_comps=n_comps, random_state=random_state)
     new_adata = adata.copy()
-    print(new_adata)
     return new_adata
 
 def do_neighborhood_graph(adata, n_neighbors=20, random_state=0):
     print("[STATUS] finding neighbors")
-    print(adata)
     sc.pp.neighbors(adata, n_neighbors=n_neighbors, random_state=random_state)
     new_adata = adata.copy()
     return new_adata
