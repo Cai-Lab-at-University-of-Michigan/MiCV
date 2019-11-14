@@ -4,9 +4,12 @@ import custom_components as cc
 import uuid
 
 def main_layout():
-	session_id = str(uuid.uuid4())
+	#session_id = str(uuid.uuid4())
+	session_id = "1234" # don't use in production
 	return html.Div(children=[
 	    html.Div(session_id, id='session-id', style={'display': 'none'}),
+	    html.Div([], id='null_container_0', style={'display': 'none'}), # stores nothing, useful output endpoint for callbacks that don't modify anything in the UI
+	    
 	    # title matter
 	    html.H1(children="MiCV"),
 	    html.Div(children='''
@@ -70,7 +73,15 @@ def main_layout():
 				], 
 				style={'marginBottom': 20, 'marginTop': 20}
 			),
-		    
+
+		    html.Div(children=[
+			    html.Button("Load old analysis", 
+			    			id="load_analysis_button"),
+			    html.Button("Save analysis", 
+			    			id="save_analysis_button"),
+		    ]
+		    ),	
+
 		    html.Div(children=[
 			    html.Button("Recalculate projection & update plot", 
 			    			id="refresh_projection_button"),
@@ -100,6 +111,24 @@ def main_layout():
 				   	# pseudotime plot
 				    html.H3(children="Pseudotime plot"),
 				    cc.plot_pseudotime_UMAP(),
+				    ], className="six columns"
+				)
+		    ], className="row"
+		    ),
+
+		    html.Div(children=[
+				html.Div(children=[
+				   	# expression plot
+				    html.H3(children="Gene expression (projection)"),
+				    cc.single_gene_dropdown(),
+				    cc.plot_expression_UMAP(),
+				    ], className="six columns"
+				),
+			    html.Div(children=[
+				   	# pseudotime gene expression plot
+				    html.H3(children="Gene expression (pseudotime)"),
+				    cc.multi_gene_dropdown(),
+				    cc.plot_gene_pseudotime(),
 				    ], className="six columns"
 				)
 		    ], className="row"
