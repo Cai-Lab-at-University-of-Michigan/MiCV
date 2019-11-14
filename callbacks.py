@@ -16,44 +16,57 @@ import custom_components as cc
      State("n_neighbors_slider", "value"),
      State("clustering_resolution_slider", "value")]
 )
-def refresh_clustering_plot(ref_all_btn_clicks, ref_proj_btn_clicks,
-    ref_clust_btn_clicks, session_ID, n_neighbors, resolution, data_dir=None,
+def refresh_clustering_plot(all_btn_clicks, proj_btn_clicks,
+                            clust_btn_clicks, session_ID, n_neighbors, 
+                            resolution, adata=None, data_dir=None, 
                             min_cells=2, min_genes=200, max_genes=10000,
                             target_sum=1e6, flavor="cell_ranger", 
                             n_top_genes=2000, n_comps=50, random_state=0):
-    
+
     print("[STATUS] refreshing plot")
     # figure out which button was pressed - what refresh functions to call
     ctx = dash.callback_context
     if not ctx.triggered:
         button_id = "not_triggered"
+        return dash.no_update
     else:
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    # do the recalculations
-    adata = get_adata(session_ID)
+    # get the adata object from the cache
+    adata = cache_adata(session_ID)
 
     if  (button_id == "refresh_clustering_button"):
-        adata = do_clustering(adata, resolution=resolution)
+        if (clust_btn_clicks in [None, 0]):
+            return dash.no_update
+        adata = do_clustering(session_ID, adata, resolution=resolution)
     
     elif(button_id == "refresh_projection_button"):
-        adata = do_neighborhood_graph(adata, n_neighbors=n_neighbors, 
+        if (proj_btn_clicks in [None, 0]):
+            return dash.no_update   
+        adata = do_neighborhood_graph(session_ID, adata, 
+                                      n_neighbors=n_neighbors, 
                                       random_state=random_state)
-        adata = do_UMAP(adata, random_state=random_state)
+        adata = do_UMAP(session_ID, adata, random_state=random_state)
     
     elif(button_id == "refresh_all_button"):
+        if (all_btn_clicks in [None, 0]):
+            return dash.no_update
         print("[STATUS] refreshing everything")   
-        adata = preprocess_data(data_dir, min_cells=min_cells, min_genes=min_genes,
-                                max_genes=max_genes, target_sum=target_sum,
-                                flavor=flavor, n_top_genes=n_top_genes)
-        adata, = do_PCA(adata, n_comps=n_comps, random_state=random_state),
-        adata = do_neighborhood_graph(adata, n_neighbors=n_neighbors, 
+        adata = preprocess_data(session_ID, data_dir, min_cells=min_cells,
+                                min_genes=min_genes, max_genes=max_genes, 
+                                target_sum=target_sum, flavor=flavor, 
+                                n_top_genes=n_top_genes)
+        adata, = do_PCA(session_ID, adata, n_comps=n_comps, 
+                        random_state=random_state),
+        adata = do_neighborhood_graph(session_ID, adata, 
+                                      n_neighbors=n_neighbors, 
                                       random_state=random_state)
-        adata = do_UMAP(adata, random_state=random_state)
-        adata = do_clustering(adata, resolution=resolution)
+        adata = do_UMAP(session_ID, adata, random_state=random_state)
+        adata = do_clustering(session_ID, adata, resolution=resolution)
+    
     # do nothing if no buttons pressed
     elif(button_id == "not_triggered"):
-        return
+        return dash.no_update
     
     # regardless of what updates were requested - update the plot
     print("[STATUS] updating plot")

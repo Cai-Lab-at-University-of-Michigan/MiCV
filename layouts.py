@@ -38,7 +38,8 @@ def main_layout():
 			html.Div([
 			    html.P('''
 			    	This is roughly related to the minimum number of cells that
-					will be grouped into a cluster together.
+					will be grouped into a cluster together, and changes the way
+					the UMAP projection is structured.
 					''')
 				], 
 				style={'marginBottom': 20, 'marginTop': 20}
@@ -78,12 +79,26 @@ def main_layout():
 			    html.Button("Recalculate everything & update plot", 
 			    			 id="refresh_all_button")
 		    ]
+		    ),
+		    
+
+		    # Plots
+			html.Div(children=[
+				html.Div(children=[
+				   	# clustering plot
+				    html.H3(children="Clustering plot"),
+				    cc.plot_clustering_UMAP(),
+				    ], className="six columns"
+				),
+			    html.Div(children=[
+				   	# pseudotime plot
+				    html.H3(children="Pseudotime plot"),
+				    cc.plot_pseudotime_UMAP(),
+				    ], className="six columns"
+				)
+		    ], className="row"
 		    )
+
 		    ]
 		),
-
-	    # clustering plot
-
-	    html.H3(children="Clustering plot"),
-	    cc.plot_clustering_UMAP()
 	])
