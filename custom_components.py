@@ -31,8 +31,8 @@ def plot_clustering_UMAP():
                 margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
                 legend={'x': 0, 'y': 1},
                 hovermode='closest',
-                width=1024,
-                height=800
+                width=920,
+                height=690
             )
         }
     )
@@ -61,8 +61,8 @@ def plot_pseudotime_UMAP():
                 margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
                 legend={'x': 0, 'y': 1},
                 hovermode='closest',
-                width=1024,
-                height=800
+                width=920,
+                height=690
             )
         }
     )

@@ -80,6 +80,12 @@ def main_layout():
 			    			 id="refresh_all_button")
 		    ]
 		    ),
+
+		    html.Div(children=[
+			    html.Button("Recalculate pseudotime & update plot", 
+			    			id="refresh_pseudotime_button")
+		    ]
+		    ),		    
 		    
 
 		    # Plots

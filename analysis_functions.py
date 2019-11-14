@@ -3,6 +3,7 @@ import numpy as np
 import anndata as ad
 import scanpy as sc
 sc.settings.autoshow = False
+import scanpy.external as sce
 
 from app import cache
 
@@ -76,3 +77,40 @@ def do_clustering(session_ID, adata, resolution=0.5,
 
     cache_adata(session_ID, new_adata)
     return new_adata
+
+def do_pseudotime(session_ID, adata):
+    d = sce.tl.palantir(adata=adata)
+    #d.process()
+
+    print("[STATUS] computing pseudotime ...")
+    d.pca_projections, d.var_r = d.palantir.utils.run_pca(d.data_df)
+    d.adata.uns['palantir_pca_results'] = {}
+    d.adata.uns['palantir_pca_results']['pca_projections'] = d.pca_projections
+    d.adata.uns['palantir_pca_results']['variance_ratio']  = d.var_r
+
+    d.dm_res = d.palantir.utils.run_diffusion_maps(d.pca_projections, knn=20)
+    d.ms_data = d.palantir.utils.determine_multiscale_space(d.dm_res)
+    d.adata.uns['palantir_diff_maps'] = d.dm_res
+    d.adata.uns['palantir_ms_data'] = d.ms_data
+
+    #d.tsne = d.palantir.utils.run_tsne(d.ms_data, perplexity=150)
+    # We're just going to use the UMAP projection instead
+    d.tsne = pd.DataFrame(adata.obsm["X_umap"], index=adata.obs.index)
+    d.tsne.columns = ["x", "y"]
+    d.adata.uns['palantir_tsne'] = d.tsne
+
+    d.imp_df = d.palantir.utils.run_magic_imputation(d.data_df, d.dm_res, n_steps=1)
+    d.adata.uns['palantir_imp_df'] = d.imp_df
+    
+    #start_cell = str(adata.obs.index[0])s
+    start_cell = "TTGTTTGCAATTTCCT-1"
+    print("[DEBUG] start cell is: " + str(start_cell))
+    pr_res = d.palantir.core.run_palantir(d.ms_data, start_cell, 
+                                            terminal_states=None, knn=20, 
+                                            num_waypoints=500, 
+                                            use_early_cell_as_start=True, 
+                                            scale_components=False)
+    adata.obs["pseudotime"] = pr_res.pseudotime[d.tsne.index]
+
+    cache_adata(session_ID, adata)
+    return adata
