@@ -1,6 +1,9 @@
 import dash
 from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
+import time
+import pandas as pd
+import seaborn as sns
 
 from app import app
 from analysis_functions import *
@@ -39,6 +42,10 @@ def refresh_clustering_plot(all_btn_clicks, proj_btn_clicks,
             return dash.no_update
         else:
             adata = sc.read_h5ad(save_analysis_file)
+            adata.obs["leiden_n"] = pd.to_numeric(adata.obs["leiden"])
+            adata.obs["cell_ID"] = adata.obs.index
+            adata.obs["cell_numeric_index"] = [i for i in range(0,len(adata.obs.index))]
+
             cache_adata(session_ID, adata)    
 
 
@@ -175,7 +182,9 @@ def refresh_pseudotime_plot(pt_btn_clicks, session_ID, n_neighbors,
                     'size': 10,
                     'line': {'width': 1, 'color': 'grey'},
                     "color": a.obs["pseudotime"],
-                    "colorscale": "plasma"
+                    "colorscale": "plasma",
+                    "cmin": 0,
+                    "cmax": 1
                 },
                 name=("Cluster " + str(i))
             )
@@ -227,7 +236,13 @@ def save_analysis(save_btn_clicks, session_ID):
 def update_single_gene_dropdown(n0, n1, session_ID):
     adata = cache_adata(session_ID)
     if (adata is None):
-        return ["None"]
+        i = 0
+        while(i < 10):
+            adata = cache_adata(session_ID)
+            time.sleep(1)
+            i += 1
+        if (adata is None):
+            return dash.no_update
     all_genes = adata.var.index.tolist()
     all_genes.sort()
     options = [{"label": i, "value": i} for i in all_genes]
@@ -240,7 +255,10 @@ def update_single_gene_dropdown(n0, n1, session_ID):
     [State('session-id', 'children')]
 )
 def refresh_expression_UMAP_plot(selected_gene, session_ID):
-    
+    if (selected_gene in [None, 0, []]):
+        return dash.no_update
+
+    print(selected_gene)
     adata = cache_adata(session_ID)
     # regardless of what updates were requested - update the plot
     print("[STATUS] updating expression UMAP plot")
@@ -268,6 +286,80 @@ def refresh_expression_UMAP_plot(selected_gene, session_ID):
         'layout': dict(
             xaxis={"title": "UMAP 1"},
             yaxis={"title": "UMAP 2"},
+            margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+            legend={'x': 0, 'y': 1},
+            hovermode='closest',
+            transition = {'duration': 250},
+        )
+    }
+
+@app.callback(
+    Output("multi_gene_dropdown", "options"),
+    [Input("refresh_all_button", "n_clicks"),
+     Input("load_analysis_button", "n_clicks")],
+    [State("session-id", "children")]
+)
+def update_multi_gene_dropdown(n0, n1, session_ID):
+    adata = cache_adata(session_ID)
+    if (adata is None):
+        i = 0
+        while(i < 10):
+            adata = cache_adata(session_ID)
+            time.sleep(1)
+            i += 1
+        if (adata is None):
+            return dash.no_update
+    all_genes = adata.var.index.tolist()
+    all_genes.sort()
+    options = [{"label": i, "value": i} for i in all_genes]
+    return options
+
+@app.callback(
+    Output("Pseudotime_gene_plot", "figure"),
+    [Input("multi_gene_dropdown", "value")],
+    [State('session-id', 'children')]
+)
+def refresh_pseudotime_gene_plot(selected_genes, session_ID):
+    if (selected_genes in [None, 0, []]):
+        return dash.no_update
+
+    print(selected_genes)
+    adata = cache_adata(session_ID)
+    gene_trends = cache_gene_trends(session_ID)
+
+    # rearrange some data before plotting
+    branches = list(gene_trends.keys())
+    colors = pd.Series(sns.color_palette('Set2', len(selected_genes)).as_hex(), 
+                       index=selected_genes)
+    print("[DEBUG] branches: " + str(branches) + "\n gene_trends: " + str(gene_trends))
+
+    # regardless of what updates were requested - update the plot
+    print("[STATUS] updating pseudotime gene trend plot")
+    traces = []
+    for i in selected_genes:
+        trends = gene_trends[branches[0]]["trends"]
+        stds = gene_trends[branches[0]]["std"]
+        traces.append(
+            go.Scattergl(
+                x=trends.columns,
+                y=trends.loc[i, :],
+                text=str(i),
+                mode="lines+markers",
+                opacity=0.7,
+                marker={
+                    'size': 10,
+                    'line': {'width': 2, 'color': colors[i]},
+                    "color": colors[i],
+                    "opacity": 0
+                },
+                name=(str(i))
+            )
+        )
+    return {
+        'data': traces,
+        'layout': dict(
+            xaxis={"title": "Pseudotime"},
+            yaxis={"title": "Expression"},
             margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
             legend={'x': 0, 'y': 1},
             hovermode='closest',

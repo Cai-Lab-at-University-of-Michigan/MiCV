@@ -4,8 +4,8 @@ import custom_components as cc
 import uuid
 
 def main_layout():
-	#session_id = str(uuid.uuid4())
-	session_id = "1234" # don't use in production
+	session_id = str(uuid.uuid4())
+	#session_id = "1234" # don't use in production
 	return html.Div(children=[
 	    html.Div(session_id, id='session-id', style={'display': 'none'}),
 	    html.Div([], id='null_container_0', style={'display': 'none'}), # stores nothing, useful output endpoint for callbacks that don't modify anything in the UI

@@ -100,9 +100,11 @@ def do_pseudotime(session_ID, adata):
 
     d.imp_df = d.palantir.utils.run_magic_imputation(d.data_df, d.dm_res, n_steps=1)
     d.adata.uns['palantir_imp_df'] = d.imp_df
+
     
     #start_cell = str(adata.obs.index[0])s
-    start_cell = "TTGTTTGCAATTTCCT-1"
+    start_cell = "TTGTTTGCAATTTCCT"
+    #start_cell = "TTGTTTGCAATTTCCT-1"
     #start_cell = "ATGGAGGCAGCTAACT-1" #fails
     print("[DEBUG] start cell is: " + str(start_cell))
     pr_res = d.palantir.core.run_palantir(d.ms_data, start_cell, 
@@ -114,11 +116,23 @@ def do_pseudotime(session_ID, adata):
     #adata.obs["branch"] = 
     d.adata.uns["pr_res"] = pr_res
 
+    genes = adata.var.index.tolist()
+    #genes = ["CycE", "dap", "Hey", "nSyb"]
+    print("[DEBUG] genes: " + str(genes))
+    print("[DEBUG] d.imp_df.loc[:, genes]: " + str(d.imp_df.loc[:, genes]))
+    print("[STATUS] computing all gene trends (this will take a while)")
+    gene_trends = d.palantir.presults.compute_gene_trends(pr_res, 
+                                                          d.imp_df.loc[:, genes])
+
+    d.adata.uns["gene_trends"] = gene_trends
+    adata.uns = d.adata.uns.copy()
     cache_adata(session_ID, adata)
     cache_pseudotime(session_ID, d.adata)
+    cache_gene_trends(session_ID, gene_trends)
     return adata
 
 def do_pseudotime_gene_trends(session_ID, d, genes):
+    d = cache_pseudotime(session_ID)
     gene_trends = d.palantir.presults.compute_gene_trends(d.adata.uns["pr_res"], 
                                                           d.imp_df.loc[:, genes])
     cache_gene_trends(session_ID, gene_trends)
