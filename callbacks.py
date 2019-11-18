@@ -179,7 +179,9 @@ def refresh_pseudotime_plot(pt_btn_clicks, session_ID, n_neighbors,
     # regardless of what updates were requested - update the plot
     print("[STATUS] updating pseudotime plot")
     traces = []
+    n = 0
     for i in sorted(adata.obs["leiden_n"].unique()):
+        n += 1
         a = adata[adata.obs["leiden_n"] == i]
         traces.append(
             go.Scattergl(
@@ -194,7 +196,11 @@ def refresh_pseudotime_plot(pt_btn_clicks, session_ID, n_neighbors,
                     "color": a.obs["pseudotime"],
                     "colorscale": "plasma",
                     "cmin": 0,
-                    "cmax": 1
+                    "cmax": 1,
+                    "colorbar": dict(
+                        title="Pseudotime"
+                    ) if (n == len(sorted(adata.obs["leiden_n"].unique()))) 
+                      else None,
                 },
                 name=("Cluster " + str(i))
             )
@@ -273,6 +279,7 @@ def refresh_expression_UMAP_plot(selected_gene, session_ID):
     # regardless of what updates were requested - update the plot
     print("[STATUS] updating expression UMAP plot")
     traces = []
+    n = 0 # counts through the list of leiden_n
     for i in sorted(adata.obs["leiden_n"].unique()):
         a = adata[adata.obs["leiden_n"] == i]
         traces.append(
@@ -286,11 +293,18 @@ def refresh_expression_UMAP_plot(selected_gene, session_ID):
                     'size': 10,
                     'line': {'width': 1, 'color': 'grey'},
                     "color": a.raw.obs_vector(selected_gene),
-                    "colorscale": "viridis"
+                    "colorscale": "viridis",
+                    "cmin": 0,
+                    "cmax": np.max(adata.raw.obs_vector(selected_gene)),
+                    "colorbar": dict(
+                        title=str(selected_gene)
+                    ) if (n == len(sorted(adata.obs["leiden_n"].unique())) - 1) 
+                      else None,
                 },
                 name=("Cluster " + str(i))
             )
         )
+        n += 1
     return {
         'data': traces,
         'layout': dict(
@@ -360,10 +374,10 @@ def refresh_pseudotime_gene_plot(selected_genes, session_ID):
                 mode="lines+markers",
                 opacity=0.7,
                 marker={
-                    'size': 10,
+                    'size': 5,
                     'line': {'width': 2, 'color': colors[i]},
                     "color": colors[i],
-                    "opacity": 0
+                    "opacity": 0.25
                 },
                 name=(str(i))
             )
@@ -372,6 +386,48 @@ def refresh_pseudotime_gene_plot(selected_genes, session_ID):
         'data': traces,
         'layout': dict(
             xaxis={"title": "Pseudotime"},
+            yaxis={"title": "Expression"},
+            margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+            legend={'x': 0, 'y': 1},
+            hovermode='closest',
+            transition = {'duration': 250},
+        )
+    }
+
+
+
+@app.callback(
+    Output("Violin_gene_plot", "figure"),
+    [Input("multi_gene_dropdown", "value")],
+    [State('session-id', 'children')]
+)
+def refresh_violin_gene_plot(selected_genes, session_ID):
+    if (selected_genes in [None, 0, []]):
+        return dash.no_update
+
+    print(selected_genes)
+    adata = cache_adata(session_ID)
+
+    # regardless of what updates were requested - update the plot
+    print("[STATUS] updating violin gene plot")
+    traces = []
+    for i in selected_genes:
+        d = adata.raw.obs_vector(i)
+        traces.append(
+            go.Violin(
+                y=d,
+                text="Cell ID: " + adata.obs["cell_ID"],
+                opacity=0.7,
+                box_visible=True,
+                meanline_visible=True,
+                points="all",
+                name=(str(i))
+            )
+        )
+    return {
+        'data': traces,
+        'layout': dict(
+            xaxis={"title": "Gene"},
             yaxis={"title": "Expression"},
             margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
             legend={'x': 0, 'y': 1},

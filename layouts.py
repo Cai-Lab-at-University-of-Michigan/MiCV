@@ -126,9 +126,10 @@ def main_layout():
 				),
 			    html.Div(children=[
 				   	# pseudotime gene expression plot
-				    html.H3(children="Gene expression (pseudotime)"),
+				    html.H3(children="Gene expression (pseudotime/bulk)"),
 				    cc.multi_gene_dropdown(),
 				    cc.plot_gene_pseudotime(),
+				    cc.plot_gene_violin()
 				    ], className="six columns"
 				)
 		    ], className="row"

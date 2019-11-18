@@ -138,6 +138,35 @@ def plot_expression_UMAP():
     )
     return g
 
+def plot_gene_violin():
+    g = dcc.Graph(
+        id='Violin_gene_plot',
+        figure={
+            'data': [
+                go.Violin(
+                    y=[3,7,1],
+                    text=str("NULL"),
+                    opacity=0.7,
+                    name=str("NULL"),
+                    box_visible=True,
+                    meanline_visible=True,
+                    points="all"
+                )
+            ],
+            'layout': go.Layout(
+                xaxis={'title': 'Gene'},
+                yaxis={'title': "Expression"},
+                margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                legend={'x': 0, 'y': 1},
+                hovermode='closest',
+                width=920,
+                height=300
+            )
+        }
+    )
+    return g
+
+
 def single_gene_dropdown():
     m = dcc.Dropdown(
         id='single_gene_dropdown',
