@@ -118,17 +118,18 @@ def do_pseudotime(session_ID, adata):
 
     genes = adata.var.index.tolist()
     #genes = ["CycE", "dap", "Hey", "nSyb"]
-    print("[DEBUG] genes: " + str(genes))
-    print("[DEBUG] d.imp_df.loc[:, genes]: " + str(d.imp_df.loc[:, genes]))
+    #print("[DEBUG] genes: " + str(genes))
+    #print("[DEBUG] d.imp_df.loc[:, genes]: " + str(d.imp_df.loc[:, genes]))
     print("[STATUS] computing all gene trends (this will take a while)")
     gene_trends = d.palantir.presults.compute_gene_trends(pr_res, 
                                                           d.imp_df.loc[:, genes])
 
+    print(gene_trends)
     d.adata.uns["gene_trends"] = gene_trends
     adata.uns = d.adata.uns.copy()
     cache_adata(session_ID, adata)
-    cache_pseudotime(session_ID, d.adata)
-    cache_gene_trends(session_ID, gene_trends)
+    #cache_pseudotime(session_ID, d.adata)
+    save_gene_trends(session_ID, gene_trends)
     return adata
 
 def do_pseudotime_gene_trends(session_ID, d, genes):

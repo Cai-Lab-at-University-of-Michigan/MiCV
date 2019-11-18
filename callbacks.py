@@ -41,16 +41,22 @@ def refresh_clustering_plot(all_btn_clicks, proj_btn_clicks,
         if (load_btn_clicks in [None, 0]):
             return dash.no_update
         else:
-            adata = sc.read_h5ad(save_analysis_file)
+            adata = sc.read_h5ad(save_analysis_path + "adata_cache.h5ad")
+            #print(adata)
+            cache_adata(session_ID, adata)
+
             adata.obs["leiden_n"] = pd.to_numeric(adata.obs["leiden"])
             adata.obs["cell_ID"] = adata.obs.index
             adata.obs["cell_numeric_index"] = [i for i in range(0,len(adata.obs.index))]
+            gene_trends = read_gene_trends(session_ID)
+            print(gene_trends)
+            #adata.uns["gene_trends"] = gene_trends
+            cache_gene_trends(session_ID, gene_trends)  
 
-            cache_adata(session_ID, adata)    
 
 
     # get the adata object from the cache
-    adata = cache_adata(session_ID)
+    #adata = cache_adata(session_ID)
 
     if  (button_id == "refresh_clustering_button"):
         if (clust_btn_clicks in [None, 0]):
@@ -160,7 +166,11 @@ def refresh_pseudotime_plot(pt_btn_clicks, session_ID, n_neighbors,
     if  (button_id == "refresh_pseudotime_button"):
         if (pt_btn_clicks in [None, 0]):
             return dash.no_update
-        adata = do_pseudotime(session_ID, adata)
+        #print(adata.uns.keys())
+        if not ("pseudotime" in adata.obs):
+            adata = do_pseudotime(session_ID, adata)
+        #adata = do_pseudotime(session_ID, adata)
+    
     
     # do nothing if no buttons pressed
     elif(button_id == "not_triggered"):
@@ -203,7 +213,7 @@ def refresh_pseudotime_plot(pt_btn_clicks, session_ID, n_neighbors,
 
 
 
-save_analysis_file = "/home/nigelmic/bioinformatics/cache/adata_cache.h5ad"
+save_analysis_path = "/home/nigelmic/data/programming/dash/scanpy/cache/"
 @app.callback(
     Output("null_container_0", "children"),
     [Input("save_analysis_button", "n_clicks")],
@@ -224,7 +234,7 @@ def save_analysis(save_btn_clicks, session_ID):
             pass
         else:
             adata = cache_adata(session_ID)
-            adata.write(save_analysis_file)
+            adata.write(save_analysis_path + "adata_cache.h5ad")
         return dash.no_update
 
 @app.callback(
@@ -325,7 +335,9 @@ def refresh_pseudotime_gene_plot(selected_genes, session_ID):
 
     print(selected_genes)
     adata = cache_adata(session_ID)
-    gene_trends = cache_gene_trends(session_ID)
+    gene_trends = read_gene_trends(session_ID)
+    #gene_trends = adata.uns["gene_trends"]
+    print(gene_trends)
 
     # rearrange some data before plotting
     branches = list(gene_trends.keys())
@@ -335,6 +347,7 @@ def refresh_pseudotime_gene_plot(selected_genes, session_ID):
 
     # regardless of what updates were requested - update the plot
     print("[STATUS] updating pseudotime gene trend plot")
+    print("[DEBUG] gene_trends " + str(gene_trends))
     traces = []
     for i in selected_genes:
         trends = gene_trends[branches[0]]["trends"]
