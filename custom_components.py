@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import anndata as ad
 
+scale = 200
 
 def plot_clustering_UMAP():
     g = dcc.Graph(
@@ -31,8 +32,8 @@ def plot_clustering_UMAP():
                 margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
                 legend={'x': 0, 'y': 1},
                 hovermode='closest',
-                width=920,
-                height=690
+                width=4 * scale,
+                height=3 * scale
             )
         }
     )
@@ -61,8 +62,8 @@ def plot_pseudotime_UMAP():
                 margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
                 legend={'x': 0, 'y': 1},
                 hovermode='closest',
-                width=920,
-                height=690
+                width=4 * scale,
+                height=3 * scale
             )
         }
     )
@@ -101,8 +102,8 @@ def plot_gene_pseudotime():
                 margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
                 legend={'x': 0, 'y': 1},
                 hovermode='closest',
-                width=920,
-                height=300
+                width=4 * scale,
+                height=2 * scale
             )
         }
     )
@@ -131,8 +132,8 @@ def plot_expression_UMAP():
                 margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
                 legend={'x': 0, 'y': 1},
                 hovermode='closest',
-                width=920,
-                height=690
+                width=4 * scale,
+                height=3 * scale
             )
         }
     )
@@ -159,8 +160,8 @@ def plot_gene_violin():
                 margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
                 legend={'x': 0, 'y': 1},
                 hovermode='closest',
-                width=920,
-                height=300
+                width=4 * scale,
+                height=2 * scale
             )
         }
     )
@@ -191,6 +192,36 @@ def multi_gene_dropdown():
         ],
         value=[],
         multi=True,
+        searchable=True
+        ) 
+    return m 
+
+def pseudotime_dropdown():
+    m = dcc.Dropdown(
+        id='pseudotime_dropdown',
+        options=[
+            {'label': 'pseudotime', 'value': 'pseudotime'},
+            {'label': 'differentiation potential', 'value': 'differentiation_potential'},
+        ],
+        value=[],
+        multi=False,
+        searchable=True
+        ) 
+    return m 
+
+def clustering_dropdown():
+    m = dcc.Dropdown(
+        id='clustering_dropdown',
+        options=[
+            {'label': 'leiden', 'value': 'leiden_n'},
+            {'label': 'user_0', 'value': 'user_0'},
+            {'label': 'user_1', 'value': 'user_1'},
+            {'label': 'user_2', 'value': 'user_2'},
+            {'label': 'user_3', 'value': 'user_3'},
+            {'label': 'user_4', 'value': 'user_4'},
+        ],
+        value=[],
+        multi=False,
         searchable=True
         ) 
     return m 

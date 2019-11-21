@@ -113,7 +113,7 @@ def do_pseudotime(session_ID, adata):
                                             use_early_cell_as_start=True, 
                                             scale_components=False)
     adata.obs["pseudotime"] = pr_res.pseudotime[d.tsne.index]
-    #adata.obs["branch"] = 
+    adata.obs["differentiation_potential"] = pr_res.entropy[d.tsne.index]
     d.adata.uns["pr_res"] = pr_res
 
     genes = adata.var.index.tolist()
@@ -124,12 +124,10 @@ def do_pseudotime(session_ID, adata):
     gene_trends = d.palantir.presults.compute_gene_trends(pr_res, 
                                                           d.imp_df.loc[:, genes])
 
-    print(gene_trends)
     d.adata.uns["gene_trends"] = gene_trends
     adata.uns = d.adata.uns.copy()
     cache_adata(session_ID, adata)
-    #cache_pseudotime(session_ID, d.adata)
-    save_gene_trends(session_ID, gene_trends)
+    cache_gene_trends(session_ID, gene_trends)
     return adata
 
 def do_pseudotime_gene_trends(session_ID, d, genes):

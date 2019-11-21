@@ -2,6 +2,7 @@ import dash
 from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
 import time
+import re #regex
 import pandas as pd
 import seaborn as sns
 
@@ -15,19 +16,20 @@ import custom_components as cc
     [Input("refresh_all_button", "n_clicks"),
      Input("refresh_projection_button", "n_clicks"),
      Input("refresh_clustering_button", "n_clicks"),
-     Input("load_analysis_button", "n_clicks")],
+     Input("load_analysis_button", "n_clicks"),
+     Input("clustering_dropdown", "value")],
     [State('session-id', 'children'),
      State("n_neighbors_slider", "value"),
      State("clustering_resolution_slider", "value")]
 )
 def refresh_clustering_plot(all_btn_clicks, proj_btn_clicks,
-                            clust_btn_clicks, load_btn_clicks,
-                            session_ID, n_neighbors, resolution, adata=None, 
-                            data_dir=None, min_cells=2, min_genes=200, 
+                            clust_btn_clicks, load_btn_clicks, clustering_plot_type,
+                            session_ID, n_neighbors, resolution, 
+                            adata=None, data_dir=None, min_cells=2, min_genes=200, 
                             max_genes=10000, target_sum=1e6, flavor="cell_ranger", 
                             n_top_genes=2000, n_comps=50, random_state=0):
 
-    print("[STATUS] refreshing plot")
+    print("[STATUS] refreshing clustering plot")
     # figure out which button was pressed - what refresh functions to call
     ctx = dash.callback_context
     if not ctx.triggered:
@@ -41,17 +43,15 @@ def refresh_clustering_plot(all_btn_clicks, proj_btn_clicks,
         if (load_btn_clicks in [None, 0]):
             return dash.no_update
         else:
-            adata = sc.read_h5ad(save_analysis_path + "adata_cache.h5ad")
-            #print(adata)
-            cache_adata(session_ID, adata)
+            adata = cache_adata(session_ID)
 
             adata.obs["leiden_n"] = pd.to_numeric(adata.obs["leiden"])
             adata.obs["cell_ID"] = adata.obs.index
             adata.obs["cell_numeric_index"] = [i for i in range(0,len(adata.obs.index))]
-            gene_trends = read_gene_trends(session_ID)
-            print(gene_trends)
-            #adata.uns["gene_trends"] = gene_trends
-            cache_gene_trends(session_ID, gene_trends)  
+            gene_trends = cache_gene_trends(session_ID)  
+
+            gene_list = adata.var.index.tolist()
+            cache_gene_list(session_ID, gene_list)
 
 
 
@@ -90,12 +90,25 @@ def refresh_clustering_plot(all_btn_clicks, proj_btn_clicks,
     # do nothing if no buttons pressed
     elif(button_id == "not_triggered"):
         return dash.no_update
+
+    # if it's a dropdown menu update - load adata
+    else:
+        adata = cache_adata(session_ID)
+
     
-    # regardless of what updates were requested - update the plot
-    print("[STATUS] updating plot")
+    if (clustering_plot_type in [0, "", None, []]):
+        return dash.no_update
+
+    for i in ["user_" + str(j) for j in range(0, 10)]:
+        if not (i in adata.obs.columns):
+            adata.obs[i] = ["unnassigned" for j in adata.obs.index.to_list()]
+    adata = cache_adata(session_ID, adata)
+
+    # update the plot
+    print("[STATUS] updating plot by: " + str(clustering_plot_type))
     traces = []
-    for i in sorted(adata.obs["leiden_n"].unique()):
-        a = adata[adata.obs["leiden_n"] == i]
+    for i in sorted(adata.obs[clustering_plot_type].unique()):
+        a = adata[adata.obs[clustering_plot_type] == i]
         traces.append(
             go.Scattergl(
                 x=a.obsm["X_umap"][:,0],
@@ -143,12 +156,13 @@ def update_clustering_resolution_output(value):
 
 @app.callback(
     Output("Pseudotime_UMAP_plot", "figure"),
-    [Input("refresh_pseudotime_button", "n_clicks")],
+    [Input("refresh_pseudotime_button", "n_clicks"),
+     Input("pseudotime_dropdown", "value")],
     [State('session-id', 'children'),
      State("n_neighbors_slider", "value"),
      State("clustering_resolution_slider", "value")]
 )
-def refresh_pseudotime_plot(pt_btn_clicks, session_ID, n_neighbors, 
+def refresh_pseudotime_plot(pt_btn_clicks, pt_plot_type, session_ID, n_neighbors, 
                             resolution, adata=None, data_dir=None):
 
     print("[STATUS] refreshing plot")
@@ -167,13 +181,15 @@ def refresh_pseudotime_plot(pt_btn_clicks, session_ID, n_neighbors,
         if (pt_btn_clicks in [None, 0]):
             return dash.no_update
         #print(adata.uns.keys())
-        if not ("pseudotime" in adata.obs):
+        if not (("pseudotime" in adata.obs)
+            and ("differentiation_potential" in adata.obs)):
             adata = do_pseudotime(session_ID, adata)
         #adata = do_pseudotime(session_ID, adata)
     
     
     # do nothing if no buttons pressed
-    elif(button_id == "not_triggered"):
+    elif((button_id == "not_triggered")
+      or (pt_plot_type in [0, "", None, []])):
         return dash.no_update
     
     # regardless of what updates were requested - update the plot
@@ -193,7 +209,7 @@ def refresh_pseudotime_plot(pt_btn_clicks, session_ID, n_neighbors,
                 marker={
                     'size': 10,
                     'line': {'width': 1, 'color': 'grey'},
-                    "color": a.obs["pseudotime"],
+                    "color": a.obs[str(pt_plot_type)],
                     "colorscale": "plasma",
                     "cmin": 0,
                     "cmax": 1,
@@ -240,7 +256,7 @@ def save_analysis(save_btn_clicks, session_ID):
             pass
         else:
             adata = cache_adata(session_ID)
-            adata.write(save_analysis_path + "adata_cache.h5ad")
+            cache_adata(session_ID, adata)
         return dash.no_update
 
 @app.callback(
@@ -250,18 +266,11 @@ def save_analysis(save_btn_clicks, session_ID):
     [State("session-id", "children")]
 )
 def update_single_gene_dropdown(n0, n1, session_ID):
-    adata = cache_adata(session_ID)
-    if (adata is None):
-        i = 0
-        while(i < 10):
-            adata = cache_adata(session_ID)
-            time.sleep(1)
-            i += 1
-        if (adata is None):
-            return dash.no_update
-    all_genes = adata.var.index.tolist()
-    all_genes.sort()
-    options = [{"label": i, "value": i} for i in all_genes]
+    if (n0 in [0, None] and n1 in [0, None]):
+        return dash.no_update
+    gene_list = cache_gene_list(session_ID)
+    gene_list.sort()
+    options = [{"label": i, "value": i} for i in gene_list]
     return options
 
 
@@ -274,7 +283,6 @@ def refresh_expression_UMAP_plot(selected_gene, session_ID):
     if (selected_gene in [None, 0, []]):
         return dash.no_update
 
-    print(selected_gene)
     adata = cache_adata(session_ID)
     # regardless of what updates were requested - update the plot
     print("[STATUS] updating expression UMAP plot")
@@ -324,18 +332,11 @@ def refresh_expression_UMAP_plot(selected_gene, session_ID):
     [State("session-id", "children")]
 )
 def update_multi_gene_dropdown(n0, n1, session_ID):
-    adata = cache_adata(session_ID)
-    if (adata is None):
-        i = 0
-        while(i < 10):
-            adata = cache_adata(session_ID)
-            time.sleep(1)
-            i += 1
-        if (adata is None):
-            return dash.no_update
-    all_genes = adata.var.index.tolist()
-    all_genes.sort()
-    options = [{"label": i, "value": i} for i in all_genes]
+    if (n0 in [0, None] and n1 in [0, None]):
+        return dash.no_update
+    gene_list = cache_gene_list(session_ID)
+    gene_list.sort()
+    options = [{"label": i, "value": i} for i in gene_list]
     return options
 
 @app.callback(
@@ -347,25 +348,20 @@ def refresh_pseudotime_gene_plot(selected_genes, session_ID):
     if (selected_genes in [None, 0, []]):
         return dash.no_update
 
-    print(selected_genes)
     adata = cache_adata(session_ID)
-    gene_trends = read_gene_trends(session_ID)
-    #gene_trends = adata.uns["gene_trends"]
-    print(gene_trends)
+    gene_trends = cache_gene_trends(session_ID)
 
     # rearrange some data before plotting
     branches = list(gene_trends.keys())
     colors = pd.Series(sns.color_palette('Set2', len(selected_genes)).as_hex(), 
                        index=selected_genes)
-    print("[DEBUG] branches: " + str(branches) + "\n gene_trends: " + str(gene_trends))
 
     # regardless of what updates were requested - update the plot
     print("[STATUS] updating pseudotime gene trend plot")
-    print("[DEBUG] gene_trends " + str(gene_trends))
     traces = []
     for i in selected_genes:
         trends = gene_trends[branches[0]]["trends"]
-        stds = gene_trends[branches[0]]["std"]
+        stds = gene_trends[branches[0]]["std"] * 25
         traces.append(
             go.Scattergl(
                 x=trends.columns,
@@ -374,7 +370,7 @@ def refresh_pseudotime_gene_plot(selected_genes, session_ID):
                 mode="lines+markers",
                 opacity=0.7,
                 marker={
-                    'size': 5,
+                    'size': stds.loc[i, :],
                     'line': {'width': 2, 'color': colors[i]},
                     "color": colors[i],
                     "opacity": 0.25
@@ -405,7 +401,6 @@ def refresh_violin_gene_plot(selected_genes, session_ID):
     if (selected_genes in [None, 0, []]):
         return dash.no_update
 
-    print(selected_genes)
     adata = cache_adata(session_ID)
 
     # regardless of what updates were requested - update the plot
@@ -435,3 +430,44 @@ def refresh_violin_gene_plot(selected_genes, session_ID):
             transition = {'duration': 250},
         )
     }
+
+@app.callback(
+    Output('define_cluster_text', 'children'),
+    [Input('define_cluster_button', 'n_clicks')],
+    [State('session-id', 'children'),
+     State("clustering_dropdown", "value"),
+     State("Clustering_UMAP_plot", "selectedData")]
+)
+def define_new_cluster(n_clicks, session_ID, clustering_group, selectedData):
+    if (n_clicks in [0, None, "", []]):
+        return dash.no_update
+
+    if (clustering_group == "leiden_n"):
+        return "will not add cells to automatically generated group [leiden]"
+
+    adata = cache_adata(session_ID)
+    adata.obs[clustering_group] = adata.obs[clustering_group].astype(str)
+
+    # create a new unique cluster ID for this cluster in this clustering_group
+    previous_cluster_IDs = adata.obs[clustering_group].unique()
+    new_cluster_ID = str(len(previous_cluster_IDs))
+    i = 0
+    while (new_cluster_ID in previous_cluster_IDs):
+        new_cluster_ID = str(len(previous_cluster_IDs) + i) 
+
+    # add the selected cells to this cluster
+    selected_cells = []
+    for cell in selectedData["points"]:
+        cell_ID = (cell["text"]).rsplit(" ", 1)[-1]
+        selected_cells.append(cell_ID)
+        print("[DEBUG] cell_ID: " + cell_ID)
+        #else:
+        #    print("[DEBUG] no match for: " + cell["text"])
+
+    
+    (adata.obs).loc[selected_cells, clustering_group] = new_cluster_ID
+    
+    cache_adata(session_ID, adata)
+
+    return ("put " + str(len(selected_cells)) + " cells in cluster " 
+            + str(new_cluster_ID) + " under clustering group " + str(clustering_group))
