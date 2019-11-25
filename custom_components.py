@@ -203,7 +203,8 @@ def pseudotime_dropdown():
             {'label': 'pseudotime', 'value': 'pseudotime'},
             {'label': 'differentiation potential', 'value': 'differentiation_potential'},
         ],
-        value=[],
+        value="pseudotime",
+        placeholder="pseudotime",
         multi=False,
         searchable=True
         ) 
@@ -220,7 +221,8 @@ def clustering_dropdown():
             {'label': 'user_3', 'value': 'user_3'},
             {'label': 'user_4', 'value': 'user_4'},
         ],
-        value=[],
+        value="leiden_n",
+        placeholder="leiden",
         multi=False,
         searchable=True
         ) 
