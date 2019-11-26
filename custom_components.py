@@ -227,3 +227,19 @@ def clustering_dropdown():
         searchable=True
         ) 
     return m 
+
+def gene_data_table():
+    header = ["gene name", "flybase ID", 
+              "human ortholog", "HGNC ID"]    
+    data = ["null", "null", "null", "null"]
+    
+    t = html.Table(id="gene_data_table", children=[
+        # Header
+        html.Tr([html.Th(col) for col in header]),
+        # Body
+        html.Tr([html.Td(val) for val in data])
+        #[html.Tr([
+        #    html.Td(dataframe.iloc[i][col]) for col in dataframe.columns
+        #]) for i in range(min(len(dataframe), max_rows))]
+    ])
+    return t

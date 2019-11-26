@@ -134,6 +134,8 @@ def main_layout():
 				    html.H3(children="Gene expression (projection)"),
 				    cc.single_gene_dropdown(),
 				    cc.plot_expression_UMAP(),
+				    html.H3(children="Gene information"),
+				    cc.gene_data_table()
 				    ], className="six columns"
 				),
 			    html.Div(children=[

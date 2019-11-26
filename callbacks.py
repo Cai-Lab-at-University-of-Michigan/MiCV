@@ -1,5 +1,6 @@
 import dash
 from dash.dependencies import Input, Output, State
+import dash_html_components as html
 import plotly.graph_objs as go
 import time
 import re #regex
@@ -538,3 +539,45 @@ def define_new_cluster(n_clicks, session_ID, clustering_group,
 
     return ("put " + str(len(selected_cells)) + " cells in cluster " 
             + str(new_cluster_ID) + " under clustering group " + str(clustering_group))
+
+
+@app.callback(
+    Output('gene_data_table', 'children'),
+    [Input('single_gene_dropdown', 'value')],
+    [State('session-id', 'children')]
+)
+def update_gene_data_table(selected_gene, session_ID):
+    print("[DEBUG] selected_gene: " + str(selected_gene))
+    if (selected_gene in [None, "", 0, []]):
+        return dash.no_update
+
+    d = get_ortholog_data(session_ID, selected_gene)
+
+    print("[DEBUG] d: " + str(d))
+    
+    snapshot = get_gene_snapshot(session_ID, selected_gene)
+    # make the HTML table
+
+    ret = []
+    # gene snapshot
+    snapshot_header = ["flybase ID", "gene symbol", "Flybase snapshot"]
+    ret.append(html.Tr([html.Th(col) for col in snapshot_header]))
+    items = [snapshot.iloc[0]["FBgn_ID"], 
+             snapshot.iloc[0]["GeneSymbol"], 
+             snapshot.iloc[0]["gene_snapshot_text"]]
+    ret.append(html.Tr([html.Td(i) for i in items]))
+
+    # human orthologs
+    ortholog_header = ["human ortholog", "DIOPT score", "HGNC ID"]
+    ret.append(html.Tr([html.Th(col) for col in ortholog_header]))
+    if (len(d.index) == 0):
+        ret.append(html.Tr([html.Td("N/A") for i in ortholog_header]))
+    else:
+        for index, row in d.iterrows():
+            items = [row["Human_gene_symbol"],
+                    row["DIOPT_score"],
+                    row["Human_gene_HGNC_ID"]]
+            items = [str(i) for i in items]
+            r = html.Tr([html.Td(i) for i in items])
+            ret.append(r)
+    return ret
