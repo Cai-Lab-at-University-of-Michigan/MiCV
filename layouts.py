@@ -12,9 +12,7 @@ def main_layout():
 	    
 	    # title matter
 	    html.H1(children="MiCV"),
-	    html.Div(children='''
-	        A platform for simultaneous cluster-based & pseudotemporal analysis of scRNA-seq data
-	    '''),
+	    html.H3(children="The analysis portion of the MiCV pipeline: \na Multi-resolution single cell transcriptome analysis strategy that Iteratively Clusters and Validates single cell transcriptome data in-silico and in-situ."),
 
 	    # clustering parameters
 	    html.Div(id="analysis_page", children=[
@@ -80,8 +78,10 @@ def main_layout():
 		    html.Div(children=[
 			    html.Button("Load old analysis", 
 			    			id="load_analysis_button"),
+	    		html.P("Click this button to load the original analysis and gene lists."),
 			    html.Button("Save analysis", 
-			    			id="save_analysis_button"),
+			    			id="save_analysis_button", 
+			    			style={"display": "none"}),
 		    ]
 		    ),	
 
@@ -97,14 +97,15 @@ def main_layout():
 
 		    html.Div(children=[
 			    html.Button("Recalculate pseudotime & update plot", 
-			    			id="refresh_pseudotime_button")
+			    			id="refresh_pseudotime_button",
+			    			style={"display": "none"})
 		    ]
 		    ),		    
 
 		    html.Div(children=[
 			    html.Button("Define new cluster", 
 			    			id="define_cluster_button"),
-			    html.P("Adding cells to: ", id="define_cluster_text")
+			    html.P("Add currently selected cells from the clustering plot to a new cluster in the user-cluster plot group you have currently selected", id="define_cluster_text")
 		    ],
 		    style={'marginBottom': 20, 'marginTop': 20}),	
 		    
@@ -114,6 +115,7 @@ def main_layout():
 				html.Div(children=[
 				   	# clustering plot
 				    html.H3(children="Clustering plot"),
+				    html.P("Show either leiden (automatic) cluster assignments or user-defined cluster assignments"),
 				    cc.clustering_dropdown(),
 				    cc.plot_clustering_UMAP(),
 				    ], className="six columns"
@@ -121,6 +123,7 @@ def main_layout():
 			    html.Div(children=[
 				   	# pseudotime plot
 				    html.H3(children="Pseudotime plot"),
+				    html.P("Show either the pseudotime assignment or calculated differentiation potential of cells, based on the palantir markov-chain-based algorithm"),
 				    cc.pseudotime_dropdown(),
 				    cc.plot_pseudotime_UMAP(),
 				    ], className="six columns"
@@ -132,6 +135,7 @@ def main_layout():
 				html.Div(children=[
 				   	# expression plot
 				    html.H3(children="Gene expression (projection)"),
+				    html.P("Visualize expression of a single highly-variable gene across single cells, and pull up data from Flybase (Oct, 2019) on the selected gene"),
 				    cc.single_gene_dropdown(),
 				    cc.plot_expression_UMAP(),
 				    html.H3(children="Gene information"),
@@ -141,6 +145,7 @@ def main_layout():
 			    html.Div(children=[
 				   	# pseudotime gene expression plot
 				    html.H3(children="Gene expression (pseudotime/bulk)"),
+				    html.P("Visualize the expression of multiple highly-variable genes against pseudotime or across all cells from the entire dataset"),
 				    cc.multi_gene_dropdown(),
 				    cc.plot_gene_pseudotime(),
 				    cc.plot_gene_violin()

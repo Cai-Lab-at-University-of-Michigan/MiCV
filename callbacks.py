@@ -18,17 +18,20 @@ import custom_components as cc
      Input("refresh_projection_button", "n_clicks"),
      Input("refresh_clustering_button", "n_clicks"),
      Input("load_analysis_button", "n_clicks"),
+     Input("define_cluster_button", "n_clicks"),
      Input("clustering_dropdown", "value"),
      Input("Pseudotime_UMAP_plot", "selectedData"),
      Input("Expression_UMAP_plot", "selectedData"),
-     Input("Violin_gene_plot", "selectedData")],
+     Input("Violin_gene_plot", "selectedData"),
+     Input("Pseudotime_gene_plot", "selectedData")],
     [State("session-id", "children"),
      State("n_neighbors_slider", "value"),
      State("clustering_resolution_slider", "value"),
      State("Clustering_UMAP_plot", "selectedData")]
 )
 def refresh_clustering_plot(all_btn_clicks, proj_btn_clicks,
-                            clust_btn_clicks, load_btn_clicks, clustering_plot_type, pt_selected, expr_selected, violin_selected,
+                            clust_btn_clicks, load_btn_clicks, 
+                            cluster_btn_clicks, clustering_plot_type, pt_selected, expr_selected, violin_selected, pt_gene_selected, 
                             session_ID, n_neighbors, resolution, clust_selected,  
                             adata=None, data_dir=None, min_cells=2, min_genes=200, 
                             max_genes=10000, target_sum=1e6, flavor="cell_ranger", 
@@ -95,12 +98,47 @@ def refresh_clustering_plot(all_btn_clicks, proj_btn_clicks,
         adata = do_UMAP(session_ID, adata, random_state=random_state)
         adata = do_clustering(session_ID, adata, resolution=resolution)
     
+    elif(button_id == "define_cluster_button"):
+        if (cluster_btn_clicks in [0, None, "", []]):
+            return dash.no_update
+
+        adata = cache_adata(session_ID)
+        clustering_group = clustering_plot_type
+        if not (clustering_group == "leiden_n"):
+            adata.obs[clustering_group] = adata.obs[clustering_group].astype(str)
+            # create a new unique cluster ID for this cluster in this clustering_group
+            previous_cluster_IDs = adata.obs[clustering_group].unique()
+            new_cluster_ID = str(len(previous_cluster_IDs))
+            i = 0
+            while (new_cluster_ID in previous_cluster_IDs):
+                new_cluster_ID = str(len(previous_cluster_IDs) + i) 
+                i += 1
+
+            # for violin plot selection, take the intersection of all points selected
+            # i.e. if the user selected cells from multiple expression violin plots,
+            # take the intersection of those cells (logical AND)
+            violin_selected = get_violin_intersection(session_ID, adata, violin_selected) 
+            
+            pt_min, pt_max = get_pseudotime_min_max(session_ID, pt_gene_selected)
+
+            # add the selected cells to this cluster
+            selected_cells = get_cell_intersection(session_ID, 
+                             adata, [clust_selected, pt_selected,
+                                     expr_selected, violin_selected],
+                             pt_min, pt_max)
+    
+            (adata.obs).loc[selected_cells, clustering_group] = new_cluster_ID
+            
+            cache_adata(session_ID, adata)
+
     elif(button_id in ["Pseudotime_UMAP_plot",
                        "Expression_UMAP_plot",
-                       "Violin_gene_plot"]):
+                       "Violin_gene_plot",
+                       "Pseudotime_gene_plot"]):
         if (pt_selected is None
         and expr_selected is None
-        and violin_selected is None):
+        and violin_selected is None
+        and pt_gene_selected is None):
             return dash.no_update
         else:
             adata = cache_adata(session_ID, adata)
@@ -126,11 +164,13 @@ def refresh_clustering_plot(all_btn_clicks, proj_btn_clicks,
 
     # figure out which cells need to be selected, based on other graphs
     violin_selected = get_violin_intersection(session_ID, adata, violin_selected)
+    pt_min, pt_max = get_pseudotime_min_max(session_ID, pt_gene_selected)
     selected_cell_intersection = get_cell_intersection(session_ID, adata,
                                                         [clust_selected, 
                                                          pt_selected,
                                                          expr_selected,
-                                                         violin_selected])
+                                                         violin_selected],
+                                                         pt_min, pt_max)
     selected_points = []
     for c in selected_cell_intersection:
         selected_points.append((adata.obs).index.get_loc(c))
@@ -205,9 +245,10 @@ def update_clustering_resolution_output(value):
      Input("pseudotime_dropdown", "value")],
     [State('session-id', 'children'),
      State("n_neighbors_slider", "value"),
-     State("clustering_resolution_slider", "value")]
+     State("clustering_resolution_slider", "value"),
+     State("load_analysis_button", "n_clicks")]
 )
-def refresh_pseudotime_plot(pt_btn_clicks, pt_plot_type, session_ID, n_neighbors, 
+def refresh_pseudotime_plot(pt_btn_clicks, pt_plot_type, session_ID, n_neighbors, load_btn_clicks,
                             resolution, adata=None, data_dir=None):
 
     print("[STATUS] refreshing plot")
@@ -230,8 +271,11 @@ def refresh_pseudotime_plot(pt_btn_clicks, pt_plot_type, session_ID, n_neighbors
             and ("differentiation_potential" in adata.obs)):
             adata = do_pseudotime(session_ID, adata)
         #adata = do_pseudotime(session_ID, adata)
-    
-    
+
+    elif (button_id == "pseudotime_dropdown"):
+        if (load_btn_clicks in [None, "", [], 0]):
+            return dash.no_update
+
     # do nothing if no buttons pressed
     elif((button_id == "not_triggered")
       or (pt_plot_type in [0, "", None, []])):
@@ -404,9 +448,10 @@ def refresh_pseudotime_gene_plot(selected_genes, session_ID):
                        index=selected_genes)
 
     # regardless of what updates were requested - update the plot
+    # TODO: intelligent branch selection
     traces = []
-    trends = gene_trends[branches[0]]["trends"]
-    stds = gene_trends[branches[0]]["std"] * 25
+    trends = gene_trends[branches[1]]["trends"]
+    stds = gene_trends[branches[1]]["std"] * 25
     for i in selected_genes:
         if not (i in trends.index):
             print("[DEBUG] gene " + str(i)  + " not in gene trends; skipping")
@@ -494,54 +539,6 @@ def refresh_violin_gene_plot(selected_genes, session_ID):
     }
 
 @app.callback(
-    Output('define_cluster_text', 'children'),
-    [Input('define_cluster_button', 'n_clicks')],
-    [State('session-id', 'children'),
-     State("clustering_dropdown", "value"),
-     State("Clustering_UMAP_plot", "selectedData"),
-     State("Pseudotime_UMAP_plot", "selectedData"),
-     State("Expression_UMAP_plot", "selectedData"),
-     State("Violin_gene_plot", "selectedData")]
-)
-def define_new_cluster(n_clicks, session_ID, clustering_group, 
-                       clust_selected, pt_selected, expr_selected, violin_selected):
-    if (n_clicks in [0, None, "", []]):
-        return dash.no_update
-
-    if (clustering_group == "leiden_n"):
-        return "will not add cells to automatically generated group [leiden]"
-
-    adata = cache_adata(session_ID)
-    adata.obs[clustering_group] = adata.obs[clustering_group].astype(str)
-
-    # create a new unique cluster ID for this cluster in this clustering_group
-    previous_cluster_IDs = adata.obs[clustering_group].unique()
-    new_cluster_ID = str(len(previous_cluster_IDs))
-    i = 0
-    while (new_cluster_ID in previous_cluster_IDs):
-        new_cluster_ID = str(len(previous_cluster_IDs) + i) 
-        i += 1
-
-    # for violin plot selection, take the intersection of all points selected
-    # i.e. if the user selected cells from multiple expression violin plots,
-    # take the intersection of those cells (logical AND)
-    violin_selected = get_violin_intersection(session_ID, adata, violin_selected) 
-    
-    # add the selected cells to this cluster
-    selected_cells = get_cell_intersection(session_ID, adata, [clust_selected, 
-                                                               pt_selected,
-                                                               expr_selected,
-                                                               violin_selected])
-    
-    (adata.obs).loc[selected_cells, clustering_group] = new_cluster_ID
-    
-    cache_adata(session_ID, adata)
-
-    return ("put " + str(len(selected_cells)) + " cells in cluster " 
-            + str(new_cluster_ID) + " under clustering group " + str(clustering_group))
-
-
-@app.callback(
     Output('gene_data_table', 'children'),
     [Input('single_gene_dropdown', 'value')],
     [State('session-id', 'children')]
@@ -552,20 +549,31 @@ def update_gene_data_table(selected_gene, session_ID):
         return dash.no_update
 
     d = get_ortholog_data(session_ID, selected_gene)
+    d = d.sort_values(by="DIOPT_score", ascending=False, na_position="last")
 
-    print("[DEBUG] d: " + str(d))
-    
     snapshot = get_gene_snapshot(session_ID, selected_gene)
+
+    disease = get_disease_data(session_ID, selected_gene)
+    
     # make the HTML table
 
     ret = []
     # gene snapshot
     snapshot_header = ["flybase ID", "gene symbol", "Flybase snapshot"]
     ret.append(html.Tr([html.Th(col) for col in snapshot_header]))
-    items = [snapshot.iloc[0]["FBgn_ID"], 
-             snapshot.iloc[0]["GeneSymbol"], 
-             snapshot.iloc[0]["gene_snapshot_text"]]
-    ret.append(html.Tr([html.Td(i) for i in items]))
+    if (len(snapshot.index) == 0):
+        ret.append(html.Tr([html.Td("N/A") for i in snapshot_header]))
+    else:
+        items = [snapshot.iloc[0]["FBgn_ID"], 
+                 snapshot.iloc[0]["GeneSymbol"], 
+                 snapshot.iloc[0]["gene_snapshot_text"]]
+        ret.append(html.Tr([html.Td(html.A(items[0], 
+                                           href="http://flybase.org/reports/" 
+                                           + items[0] + ".html",
+                                           target="_blank")),
+                            html.Td(items[1]),
+                            html.Td(items[2])
+                            ]))
 
     # human orthologs
     ortholog_header = ["human ortholog", "DIOPT score", "HGNC ID"]
@@ -578,6 +586,33 @@ def update_gene_data_table(selected_gene, session_ID):
                     row["DIOPT_score"],
                     row["Human_gene_HGNC_ID"]]
             items = [str(i) for i in items]
-            r = html.Tr([html.Td(i) for i in items])
+            r = html.Tr([html.Td(items[0]),
+                         html.Td(items[1]),
+                         html.Td(html.A(items[2], 
+                                        href="https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/"
+                                        + items[2],
+                                        target="_blank"))
+                        ])
+            ret.append(r)
+
+    # disease data
+    disease_header = ["human disease context", "based on orthology with",
+                      "flybase reference"]
+    ret.append(html.Tr([html.Th(col) for col in disease_header]))
+    if (len(disease.index) == 0):
+        ret.append(html.Tr([html.Td("N/A") for i in disease_header]))
+    else:
+        for index, row in disease.iterrows():
+            items = [row["DO qualifier"] + ": " + row["DO term"],
+                    row["Based on orthology with (symbol)"],
+                    row["Reference (FBrf ID)"]]
+            items = [str(i) for i in items]
+            r = html.Tr([html.Td(items[0]),
+                         html.Td(items[1]),
+                         html.Td(html.A(items[2], 
+                                        href="http://flybase.org/reports/" 
+                                        + items[2] + ".html",
+                                        target="_blank"))
+                ])
             ret.append(r)
     return ret
