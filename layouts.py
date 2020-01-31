@@ -12,7 +12,7 @@ def main_layout():
 	    
 	    # title matter
 	    html.H1(children="MiCV"),
-	    html.H3(children="The analysis portion of the MiCV pipeline: \na Multi-resolution single cell transcriptome analysis strategy that Iteratively Clusters and Validates single cell transcriptome data in-silico and in-situ."),
+	    html.H3(children="A Multi-Informatic Cellular Visualization tool"),
 
 	    # clustering parameters
 	    html.Div(id="analysis_page", children=[
@@ -78,7 +78,7 @@ def main_layout():
 		    html.Div(children=[
 			    html.Button("Load old analysis", 
 			    			id="load_analysis_button"),
-	    		html.P("Click this button to load the original analysis and gene lists."),
+	    		html.P("Press this button to get started by loading the original analysis and gene lists."),
 			    html.Button("Save analysis", 
 			    			id="save_analysis_button", 
 			    			style={"display": "none"}),

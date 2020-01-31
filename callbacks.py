@@ -55,10 +55,13 @@ def refresh_clustering_plot(all_btn_clicks, proj_btn_clicks,
 
             adata.obs["leiden_n"] = pd.to_numeric(adata.obs["leiden"])
             adata.obs["cell_ID"] = adata.obs.index
-            adata.obs["cell_numeric_index"] = [i for i in range(0,len(adata.obs.index))]
+            adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
+            cache_adata(session_ID)
+
             gene_trends = cache_gene_trends(session_ID)  
 
-            gene_list = adata.var.index.tolist()
+
+            gene_list = adata.raw.var.index.tolist()
             cache_gene_list(session_ID, gene_list)
 
             if (clustering_plot_type in [0, "", None, []]):
@@ -179,8 +182,10 @@ def refresh_clustering_plot(all_btn_clicks, proj_btn_clicks,
     
     # update the plot
     print("[STATUS] updating plot by: " + str(clustering_plot_type))
+    adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
     traces = []
     for i in sorted(adata.obs[clustering_plot_type].unique()):
+        print(adata.obs[clustering_plot_type] == i)
         a = adata[adata.obs[clustering_plot_type] == i]
         s = []
         for c in selected_cell_intersection:
@@ -267,10 +272,10 @@ def refresh_pseudotime_plot(pt_btn_clicks, pt_plot_type, session_ID, n_neighbors
         if (pt_btn_clicks in [None, 0, "", []]):
             return dash.no_update
         #print(adata.uns.keys())
-        if not (("pseudotime" in adata.obs)
-            and ("differentiation_potential" in adata.obs)):
-            adata = do_pseudotime(session_ID, adata)
-        #adata = do_pseudotime(session_ID, adata)
+        #if not (("pseudotime" in adata.obs)
+        #    and ("differentiation_potential" in adata.obs)):
+        #    adata = do_pseudotime(session_ID, adata)
+        adata = do_pseudotime(session_ID, adata)
 
     elif (button_id == "pseudotime_dropdown"):
         if (load_btn_clicks in [None, "", [], 0]):

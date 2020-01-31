@@ -6,11 +6,13 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets,
 				show_undo_redo=False)
+
 app.layout = layouts.main_layout
+app.server.secret_key = b"\xc9j\xa2@k\x04\x0e\x8a\xe9\xb6\xfbA\xdfsU\x05\xdfe\xec@\x05\x0b\xfd\x9a"
 server = app.server
 
-app.config.suppress_callback_exceptions = True
-
+#app.config.suppress_callback_exceptions = True
+'''
 cache = Cache(app.server, config={
     'CACHE_TYPE': 'filesystem',
     'CACHE_DIR': '/tmp/MiCV',
@@ -18,3 +20,4 @@ cache = Cache(app.server, config={
     "CACHE_DEFAULT_TIMEOUT": 30000
     }
 )
+'''

@@ -5,7 +5,7 @@ import scanpy as sc
 sc.settings.autoshow = False
 import scanpy.external as sce
 
-from app import cache
+#from app import cache
 
 from helper_functions import *
 
@@ -38,7 +38,7 @@ def preprocess_data(session_ID, adata,
     # add some extra informational columns
     adata.obs["cell_ID"] = adata.obs.index
     adata.obs["cell_numeric_index"] = [i for i in range(0,len(adata.obs.index))]
-
+    print(["DEBUG: caching adata after preprocessing."])
     cache_adata(session_ID, adata)
     return adata
 
@@ -79,7 +79,7 @@ def do_clustering(session_ID, adata, resolution=0.5,
     return new_adata
 
 def do_pseudotime(session_ID, adata):
-    d = sce.tl.palantir(adata=adata)
+    d = sce.tl.palantir(adata)
 
     print("[STATUS] computing pseudotime ...")
     d.pca_projections, d.var_r = d.palantir.utils.run_pca(d.data_df)
@@ -124,7 +124,7 @@ def do_pseudotime(session_ID, adata):
     gene_trends = d.palantir.presults.compute_gene_trends(pr_res, 
                                                           d.imp_df.loc[:, genes])
 
-    d.adata.uns["gene_trends"] = gene_trends
+    #d.adata.uns["gene_trends"] = gene_trends
     adata.uns = d.adata.uns.copy()
     cache_adata(session_ID, adata)
     cache_gene_trends(session_ID, gene_trends)
