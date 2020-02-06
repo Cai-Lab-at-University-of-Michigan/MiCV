@@ -4,6 +4,7 @@ import anndata as ad
 import scanpy as sc
 sc.settings.autoshow = False
 import scanpy.external as sce
+import palantir
 
 #from app import cache
 
@@ -17,7 +18,6 @@ def preprocess_data(session_ID, adata,
     adata = generate_adata_from_10X(session_ID)
 
     # do preprocessing
-    # TODO: parametrize this in the webapp
     print("[STATUS] performing QC and normalizing data")
     sc.pp.calculate_qc_metrics(adata, inplace=True)
     sc.pp.filter_cells(adata, min_genes=min_genes)
@@ -25,15 +25,14 @@ def preprocess_data(session_ID, adata,
     sc.pp.filter_genes(adata, min_cells=min_cells)
     sc.pp.normalize_total(adata, target_sum=target_sum)
     sc.pp.log1p(adata)
-    adata.raw = adata
+    #adata.raw = adata
 
 
     # filter down to top 2000 highly-variable genes, using cell_ranger method
     # TODO: parametrize this in the webapp
     print("[STATUS] selecting highly variable genes")
     sc.pp.highly_variable_genes(adata, flavor=flavor, n_top_genes=n_top_genes)
-    sc.pl.highly_variable_genes(adata)
-    adata = adata[:, adata.var['highly_variable']]
+    #adata = adata[:, adata.var['highly_variable']]
 
     # add some extra informational columns
     adata.obs["cell_ID"] = adata.obs.index
@@ -78,54 +77,58 @@ def do_clustering(session_ID, adata, resolution=0.5,
     cache_adata(session_ID, new_adata)
     return new_adata
 
-def do_pseudotime(session_ID, adata):
-    d = sce.tl.palantir(adata)
+def do_pseudotime(session_ID, adata, starter_cell_ID=None):
+    a = adata.to_df()
 
     print("[STATUS] computing pseudotime ...")
-    d.pca_projections, d.var_r = d.palantir.utils.run_pca(d.data_df)
-    d.adata.uns['palantir_pca_results'] = {}
-    d.adata.uns['palantir_pca_results']['pca_projections'] = d.pca_projections
-    d.adata.uns['palantir_pca_results']['variance_ratio']  = d.var_r
+    pca_projections, var_r = palantir.utils.run_pca(a)
+    #adata.uns['palantir_pca_results'] = {}
+    #adata.uns['palantir_pca_results']['pca_projections'] = pca_projections
+    #adata.uns['palantir_pca_results']['variance_ratio']  = var_r
 
-    d.dm_res = d.palantir.utils.run_diffusion_maps(d.pca_projections, knn=20)
-    d.ms_data = d.palantir.utils.determine_multiscale_space(d.dm_res)
-    d.adata.uns['palantir_diff_maps'] = d.dm_res
-    d.adata.uns['palantir_ms_data'] = d.ms_data
+    dm_res = palantir.utils.run_diffusion_maps(pca_projections, knn=20)
+    ms_data = palantir.utils.determine_multiscale_space(dm_res)
+    #adata.uns['palantir_diff_maps'] = dm_res
+    #adata.uns['palantir_ms_data'] = ms_data
 
     #d.tsne = d.palantir.utils.run_tsne(d.ms_data, perplexity=150)
     # We're just going to use the UMAP projection instead
-    d.tsne = pd.DataFrame(adata.obsm["X_umap"], index=adata.obs.index)
-    d.tsne.columns = ["x", "y"]
-    d.adata.uns['palantir_tsne'] = d.tsne
+    tsne = pd.DataFrame(adata.obsm["X_umap"], index=adata.obs.index)
+    tsne.columns = ["x", "y"]
+    #adata.uns['palantir_tsne'] = tsne
 
-    d.imp_df = d.palantir.utils.run_magic_imputation(d.data_df, d.dm_res, n_steps=1)
-    d.adata.uns['palantir_imp_df'] = d.imp_df
+    imp_df = palantir.utils.run_magic_imputation(a, dm_res, n_steps=1)
+    #adata.uns['palantir_imp_df'] = imp_df
 
     
-    #start_cell = str(adata.obs.index[0])s
-    start_cell = "TTGTTTGCAATTTCCT"
+    #start_cell = str(adata.obs.index[0])
+    if (starter_cell_ID is None):
+        start_cell = "TTGTTTGCAATTTCCT"
+        print("[ERROR] no starter cell provided; using " + start_cell +
+              " as a default (assuming original type-II data)")
+    else:
+        start_cell = starter_cell_ID
     #start_cell = "TTGTTTGCAATTTCCT-1"
     #start_cell = "ATGGAGGCAGCTAACT-1" #fails
     print("[DEBUG] start cell is: " + str(start_cell))
-    pr_res = d.palantir.core.run_palantir(d.ms_data, start_cell, 
-                                            terminal_states=None, knn=20, 
-                                            num_waypoints=500, 
-                                            use_early_cell_as_start=True, 
-                                            scale_components=False)
-    adata.obs["pseudotime"] = pr_res.pseudotime[d.tsne.index]
-    adata.obs["differentiation_potential"] = pr_res.entropy[d.tsne.index]
-    d.adata.uns["pr_res"] = pr_res
+    pr_res = palantir.core.run_palantir(ms_data, start_cell, 
+                                        terminal_states=None, knn=20, 
+                                        num_waypoints=500, 
+                                        use_early_cell_as_start=True, 
+                                        scale_components=False)
+    adata.obs["pseudotime"] = pr_res.pseudotime[tsne.index]
+    adata.obs["differentiation_potential"] = pr_res.entropy[tsne.index]
+    #adata.uns["pr_res"] = pr_res
 
     genes = adata.var.index.tolist()
     #genes = ["CycE", "dap", "Hey", "nSyb"]
     #print("[DEBUG] genes: " + str(genes))
     #print("[DEBUG] d.imp_df.loc[:, genes]: " + str(d.imp_df.loc[:, genes]))
     print("[STATUS] computing all gene trends (this will take a while)")
-    gene_trends = d.palantir.presults.compute_gene_trends(pr_res, 
-                                                          d.imp_df.loc[:, genes])
+    gene_trends = palantir.presults.compute_gene_trends(pr_res, 
+                                                        imp_df.loc[:, genes])
 
     #d.adata.uns["gene_trends"] = gene_trends
-    adata.uns = d.adata.uns.copy()
     cache_adata(session_ID, adata)
     cache_gene_trends(session_ID, gene_trends)
     return adata

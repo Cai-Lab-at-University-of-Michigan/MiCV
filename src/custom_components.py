@@ -1,3 +1,8 @@
+'''
+These functions generate placeholder figures/interactable components 
+that get updated using callbacks after loading data.
+'''
+
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -7,16 +12,18 @@ import pandas as pd
 import numpy as np
 import anndata as ad
 
+# scale of plot sizes
 scale = 200
+
 
 def plot_clustering_UMAP():
     g = dcc.Graph(
-        id='Clustering_UMAP_plot',
+        id='clustering_UMAP_plot',
         figure={
             'data': [
                 go.Scattergl(
-                    x=[0,1,2],
-                    y=[-3,-2,-1],
+                    x=None,
+                    y=None,
                     text=str("NULL"),
                     mode='markers',
                     opacity=0.7,
@@ -41,12 +48,12 @@ def plot_clustering_UMAP():
 
 def plot_pseudotime_UMAP():
     g = dcc.Graph(
-        id='Pseudotime_UMAP_plot',
+        id='pseudotime_UMAP_plot',
         figure={
             'data': [
                 go.Scattergl(
-                    x=[0,1,2],
-                    y=[-3,-2,-1],
+                    x=None,
+                    y=None,
                     text=str("NULL"),
                     mode='markers',
                     opacity=0.7,
@@ -80,12 +87,12 @@ def gene_list_dropdown(gene_list):
 
 def plot_gene_pseudotime():
     g = dcc.Graph(
-        id='Pseudotime_gene_plot',
+        id='pseudotime_gene_plot',
         figure={
             'data': [
                 go.Scattergl(
-                    x=[0,0.5,1],
-                    y=[3,7,1],
+                    x=None,
+                    y=None,
                     text=str("NULL"),
                     opacity=0.7,
                     name=str("NULL"),
@@ -111,12 +118,12 @@ def plot_gene_pseudotime():
 
 def plot_expression_UMAP():
     g = dcc.Graph(
-        id='Expression_UMAP_plot',
+        id='expression_UMAP_plot',
         figure={
             'data': [
                 go.Scattergl(
-                    x=[0,1,2],
-                    y=[-3,-2,-1],
+                    x=None,
+                    y=None,
                     text=str("NULL"),
                     mode='markers',
                     opacity=0.7,
@@ -141,11 +148,11 @@ def plot_expression_UMAP():
 
 def plot_gene_violin():
     g = dcc.Graph(
-        id='Violin_gene_plot',
+        id='violin_gene_plot',
         figure={
             'data': [
                 go.Violin(
-                    y=[3,7,1],
+                    y=None,
                     text=str("NULL"),
                     opacity=0.7,
                     name=str("NULL"),
@@ -172,9 +179,7 @@ def single_gene_dropdown():
     m = dcc.Dropdown(
         id='single_gene_dropdown',
         options=[
-            {'label': 'GeneA', 'value': 'GeneA'},
-            {'label': 'GeneB', 'value': 'GeneB'},
-            {'label': 'GeneC', 'value': 'GeneC'}
+            {'label': 'GeneA', 'value': 'GeneA'}
         ],
         value=[],
         multi=False,
@@ -186,9 +191,7 @@ def multi_gene_dropdown():
     m = dcc.Dropdown(
         id='multi_gene_dropdown',
         options=[
-            {'label': 'GeneA', 'value': 'GeneA'},
-            {'label': 'GeneB', 'value': 'GeneB'},
-            {'label': 'GeneC', 'value': 'GeneC'}
+            {'label': 'GeneA', 'value': 'GeneA'}
         ],
         value=[],
         multi=True,
@@ -238,8 +241,94 @@ def gene_data_table():
         html.Tr([html.Th(col) for col in header]),
         # Body
         html.Tr([html.Td(val) for val in data])
-        #[html.Tr([
-        #    html.Td(dataframe.iloc[i][col]) for col in dataframe.columns
-        #]) for i in range(min(len(dataframe), max_rows))]
     ])
     return t
+
+def plot_processing_UMAP():
+    g = dcc.Graph(
+        id='processing_UMAP_plot',
+        figure={
+            'data': [
+                go.Scattergl(
+                    x=None,
+                    y=None,
+                    text=str("NULL"),
+                    mode='markers',
+                    opacity=0.7,
+                    marker={
+                        "line_width": 1
+                    },
+                    name=str("NULL")
+                )
+            ],
+            'layout': go.Layout(
+                xaxis={'title': 'UMAP1'},
+                yaxis={'title': "UMAP2"},
+                margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                legend={'x': 0, 'y': 1},
+                hovermode='closest',
+                width=4 * scale,
+                height=3 * scale
+            )
+        }
+    )
+    return g
+
+def processing_UMAP_dropdown():
+    m = dcc.Dropdown(
+        id='processing_UMAP_dropdown',
+        options=[
+            {'label': 'leiden', 'value': 'leiden_n'},
+            {'label': 'psuedotime', 'value': 'pseudotime'},
+            {'label': 'differentiation potential', 'value': 'differentiation potential'},
+            {'label': "# UMIs (log1p)", "value": "# UMIs (log1p)"},
+            {'label': "# unique genes", "value": "# unique genes"},
+        ],
+        value="leiden_n",
+        placeholder="leiden",
+        multi=False,
+        searchable=True
+        ) 
+    return m 
+
+def plot_processing_QC():
+    g = dcc.Graph(
+        id='processing_QC_plot',
+        figure={
+            'data': [
+                go.Violin(
+                    y=None,
+                    text=str("NULL"),
+                    opacity=0.7,
+                    name=str("NULL"),
+                    box_visible=True,
+                    meanline_visible=True,
+                    points="all"
+                )
+            ],
+            'layout': go.Layout(
+                xaxis={'title': 'QC factor'},
+                yaxis={'title': "Counts"},
+                margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                legend={'x': 0, 'y': 1},
+                hovermode='closest',
+                width=4 * scale,
+                height=2 * scale
+            )
+        }
+    )
+    return g
+
+def processing_QC_dropdown():
+    m = dcc.Dropdown(
+    id='processing_QC_dropdown',
+    options=[
+        {'label': '# UMIs (log1p)', 'value': 'log1p_total_counts'},
+        {'label': '# unique genes', 'value': 'n_genes'},
+    ],
+    value="total_counts",
+    placeholder="# UMIs (log1p)",
+    multi=False,
+    searchable=True
+    ) 
+    return m
