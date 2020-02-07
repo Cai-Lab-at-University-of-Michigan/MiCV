@@ -371,6 +371,68 @@ def update_gene_data_table(selected_gene, session_ID):
 
 
 #### Processing page callbacks ####
+'''
+@app.callback(
+    [Output(f"{x}-collapse", "is_open") for x in ["upload", "QC", "projection", "clusters"]],
+    [Input(f"{x}-collapse-button", "n_clicks") for x in ["upload", "QC", "projection", "clusters"]],
+    [State(f"{x}-collapse", "is_open") for x in ["upload", "QC", "projection", "clusters"]],
+)
+def toggle_procssing_accordion(n1, n2, n3, n4, is_open1, is_open2, is_open3, is_open4):
+    ctx = dash.callback_context
+
+    if not ctx.triggered:
+        return ""
+    else:
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    if button_id == "upload-collapse-button" and n1:
+        return not is_open1, False, False, False
+    elif button_id == "QC-collapse-button" and n2:
+        return False, not is_open2, False, False
+    elif button_id == "projection-collapse-button" and n3:
+        return False, False, not is_open3, False
+    elif button_id == "clustering-collapse-button" and n4:
+        return False, False, False, not is_open4
+    return False, False, False, False
+'''    
+@app.callback(
+    Output("upload-collapse", "is_open"),
+    [Input("upload-collapse-button", "n_clicks")],
+    [State("upload-collapse", "is_open")],
+)
+def toggle_upload_collapse(n, is_open):
+    if n:
+        return not is_open
+    return is_open
+
+@app.callback(
+    Output("QC-collapse", "is_open"),
+    [Input("QC-collapse-button", "n_clicks")],
+    [State("QC-collapse", "is_open")],
+)
+def toggle_QC_collapse(n, is_open):
+    if n:
+        return not is_open
+    return is_open
+
+@app.callback(
+    Output("projection-collapse", "is_open"),
+    [Input("projection-collapse-button", "n_clicks")],
+    [State("projection-collapse", "is_open")],
+)
+def toggle_projection_collapse(n, is_open):
+    if n:
+        return not is_open
+    return is_open
+@app.callback(
+    Output("clustering-collapse", "is_open"),
+    [Input("clustering-collapse-button", "n_clicks")],
+    [State("clustering-collapse", "is_open")],
+)
+def toggle_clustering_collapse(n, is_open):
+    if n:
+        return not is_open
+    return is_open
 
 @app.callback(
     Output('upload_raw_data_success_output', 'children'),

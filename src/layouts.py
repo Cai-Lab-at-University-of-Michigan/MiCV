@@ -1,5 +1,6 @@
 import dash_core_components as dcc
 import dash_html_components as html
+import dash_bootstrap_components as dbc
 import custom_components as cc
 import uuid
 
@@ -26,207 +27,230 @@ def main_layout(session_id = None):
 			dcc.Tab(label='Processing', children=[
 
 				# File uploading
-				dcc.Upload(
-			        id='upload_raw_data',
-			        children=html.Div([
-			            '''Drag and drop a .zip file containing your 10X output
-			            directory's contents, or ''',
-			            html.A('select a file')
-			        ]),
-			        style={
-			            'width': '100%',
-			            'height': '60px',
-			            'lineHeight': '60px',
-			            'borderWidth': '1px',
-			            'borderStyle': 'dashed',
-			            'borderRadius': '5px',
-			            'textAlign': 'center',
-			            'margin': '10px'
-			        },
-			        # Allow multiple files to be uploaded
-			        multiple=False
-			    ),
-			    html.Div(id='upload_raw_data_success_output',
-				style={'margin-top': 20}),
+				dbc.Col(children=[
+        			dbc.Button(
+		            "Upload",
+		            id="upload-collapse-button",
+		            className="mb-3",
+		            color="primary",
+		        	),
+			        dbc.Collapse(children=[
+			            dcc.Upload(
+					        id='upload_raw_data',
+					        children=html.Div([
+					            '''Drag and drop a .zip file containing your 10X output
+					            directory's contents, or ''',
+					            html.A('select a file')
+					        ]),
+					        style={
+					            'width': '100%',
+					            'height': '60px',
+					            'lineHeight': '60px',
+					            'borderWidth': '1px',
+					            'borderStyle': 'dashed',
+					            'borderRadius': '5px',
+					            'textAlign': 'center',
+					            'margin': '10px'
+					        },
+					        # Allow multiple files to be uploaded
+					        multiple=False
+					    ),
+					    html.Div(id='upload_raw_data_success_output',
+								style={'margin-top': 20}),
+					], id="upload-collapse"),
 
-				# Processing parameters
-				html.Div(id="processing_parameters", children=[
-			    	html.H3(children="Processing parameters"),
-				    
-				    html.Div(id='min_max_genes_slider_output_container',
-				    		 style={'margin-top': 20}),			
-				    dcc.RangeSlider(
-				    	id="min_max_genes_slider",
-					    min=1,
-					    max=20000,
-					    step=10,
-					    marks={
-					        200: "200\n(default min)",
-					        1000: "1000",
-					        5000: "5000",
-					        10000: "10000\n(default max)",
-					        15000: "12500"
-						},
-					    value=[200, 10000]
-					),
-					html.Div([
-					    html.P('''
-					    	Filter cells based off of the minimum and maximum number of 
-					    	unique genes that they must express. Low/high expressing cells
-					    	are often debris or doublets, respectively.
-							''')
-						], 
-						style={'marginBottom': 20, 'marginTop': 20}
-					),
-					
-					html.Div(id='min_cells_slider_output_container',
-				    		 style={'margin-top': 20}),
-				    dcc.Slider(
-				        id="min_cells_slider",
-				        min=1,
-				        max=200,
-				        step=1,
-				        value=2,
-				        marks={
-				        	2: "2\n(default)",
-				        	10: "10",
-				        	50: "50",
-				        	100: "100",
-				        	200: "200"
-			    		},
-				    ),
-					html.Div([
-					    html.P('''
-					    	Filter genes based on how many cells express it. Genes expressed
-					    	in fewer than a few cells might be too poorly recovered to be useful
-					    	for downstream analysis.
-							''')
-						], 
-						style={'marginBottom': 20, 'marginTop': 20}
-					),
+        			dbc.Button(
+			            "QC filtering",
+			            id="QC-collapse-button",
+			            className="mb-3",
+			            color="primary",
+			        	),
+			        dbc.Collapse(children=[
+					    html.Div(id='min_max_genes_slider_output_container',
+					    		 style={'margin-top': 20}),			
+					    dcc.RangeSlider(
+					    	id="min_max_genes_slider",
+						    min=1,
+						    max=20000,
+						    step=10,
+						    marks={
+						        200: "200\n(default min)",
+						        1000: "1000",
+						        5000: "5000",
+						        10000: "10000\n(default max)",
+						        15000: "12500"
+							},
+						    value=[200, 10000]
+						),
+						html.Div([
+						    html.P('''
+						    	Filter cells based off of the minimum and maximum number of 
+						    	unique genes that they must express. Low/high expressing cells
+						    	are often debris or doublets, respectively.
+								''')
+							], 
+							style={'marginBottom': 20, 'marginTop': 20}
+						),
+						
+						html.Div(id='min_cells_slider_output_container',
+					    		 style={'margin-top': 20}),
+					    dcc.Slider(
+					        id="min_cells_slider",
+					        min=1,
+					        max=200,
+					        step=1,
+					        value=2,
+					        marks={
+					        	2: "2\n(default)",
+					        	10: "10",
+					        	50: "50",
+					        	100: "100",
+					        	200: "200"
+				    		},
+					    ),
+						html.Div([
+						    html.P('''
+						    	Filter genes based on how many cells express it. Genes expressed
+						    	in fewer than a few cells might be too poorly recovered to be useful
+						    	for downstream analysis.
+								''')
+							], 
+							style={'marginBottom': 20, 'marginTop': 20}
+						),
 
-					html.Div(id='n_top_genes_slider_output_container',
-				    		 style={'margin-top': 20}),
-				    dcc.Slider(
-				        id="n_top_genes_slider",
-				        min=100,
-				        max=10000,
-				        step=25,
-				        value=2000,
-				        marks={
-				        	500: "500",
-				        	1000: "1000",
-				        	2000: "2000\n(default)",
-				        	5000: "5000",
-				        	10000: "10000"
-			    		},
-				    ),
-					html.Div([
-					    html.P('''
-					    	Choose how many highly variable genes to consider for downstream
-					    	dimensionality reduction, clustering, and other analysis. This is
-					    	based on the cell-ranger style of highly-variable gene selection.
-							''')
-						], 
-						style={'marginBottom': 20, 'marginTop': 20}
-					),
+						html.Div(id='n_top_genes_slider_output_container',
+					    		 style={'margin-top': 20}),
+					    dcc.Slider(
+					        id="n_top_genes_slider",
+					        min=100,
+					        max=10000,
+					        step=25,
+					        value=2000,
+					        marks={
+					        	500: "500",
+					        	1000: "1000",
+					        	2000: "2000\n(default)",
+					        	5000: "5000",
+					        	10000: "10000"
+				    		},
+					    ),
+						html.Div([
+						    html.P('''
+						    	Choose how many highly variable genes to consider for downstream
+						    	dimensionality reduction, clustering, and other analysis. This is
+						    	based on the cell-ranger style of highly-variable gene selection.
+								''')
+							], style={'marginBottom': 20, 'marginTop': 20}
+						),
+					], id="QC-collapse"),
 
-					html.Div(id='n_neighbors_slider_output_container',
-				    		 style={'margin-top': 20}),
-				    dcc.Slider(
-				        id='n_neighbors_slider',
-				        min=1,
-				        max=200,
-				        step=1,
-				        value=20,
-				        marks={
-				        	1: "1",
-				        	5: "5",
-				        	10: "10",
-				        	20: "20\n(default)",
-				        	50: "50",
-				        	125: "125",
-				        	200: "200"
-			    		},
-				    ),
-					html.Div([
-					    html.P('''
-					    	This is roughly related to the minimum number of cells that
-							will be grouped into a cluster together, and changes the way
-							the UMAP projection is structured.
-							''')
-						], 
-						style={'marginBottom': 20, 'marginTop': 20}
-					),
+        			dbc.Button(
+			            "Projection",
+			            id="projection-collapse-button",
+			            className="mb-3",
+			            color="primary",
+			        ),
 
-					html.Div(id='clustering_resolution_slider_output_container',
-				    		 style={'margin-top': 20}),			
-				    dcc.Slider(
-				        id="clustering_resolution_slider",
-				        min=0,
-				        max=5,
-				        step=0.1,
-				        value=0.5,
-						marks={
-				        	0.1: "0.1",
-				        	0.25: "0.25",
-				        	0.5: "0.5\n(default)",
-				        	1: "1",
-				        	2.5: "2.5",
-				        	5: "5"
-			    		},
-				    ),    
-					html.Div([
-					    html.P('''
-					    	Higher clustering resolution leads to a greater number of 
-					    	clusters (finer-grained).
-							''')
-						], 
-						style={'marginBottom': 20, 'marginTop': 20}
-					),
+			        dbc.Collapse(children=[
+						html.Div(id='n_neighbors_slider_output_container',
+					    		 style={'margin-top': 20}),
+					    dcc.Slider(
+					        id='n_neighbors_slider',
+					        min=1,
+					        max=200,
+					        step=1,
+					        value=20,
+					        marks={
+					        	1: "1",
+					        	5: "5",
+					        	10: "10",
+					        	20: "20\n(default)",
+					        	50: "50",
+					        	125: "125",
+					        	200: "200"
+				    		},
+					    ),
+						html.Div([
+						    html.P('''
+						    	This is roughly related to the minimum number of cells that
+								will be grouped into a cluster together, and changes the way
+								the UMAP projection is structured.
+								''')
+							], style={'marginBottom': 20, 'marginTop': 20}
+						),
+						html.Button("Recalculate (only) projection", 
+				    				id="refresh_projection_button"),
+					], id="projection-collapse"),
+
+        			dbc.Button(
+			            "Clustering",
+			            id="clustering-collapse-button",
+			            className="mb-3",
+			            color="primary",
+			        	),
+			        dbc.Collapse(children=[
+						html.Div(id='clustering_resolution_slider_output_container',
+					    		 style={'margin-top': 20}),			
+					    dcc.Slider(
+					        id="clustering_resolution_slider",
+					        min=0,
+					        max=5,
+					        step=0.1,
+					        value=0.5,
+							marks={
+					        	0.1: "0.1",
+					        	0.25: "0.25",
+					        	0.5: "0.5\n(default)",
+					        	1: "1",
+					        	2.5: "2.5",
+					        	5: "5"
+				    		},
+					    ),    
+						html.Div([
+						    html.P('''
+						    	Higher clustering resolution leads to a greater number of 
+						    	clusters (finer-grained).
+								''')
+							], 
+							style={'marginBottom': 20, 'marginTop': 20}
+						),			    
+					    html.Button("Recalculate clusters", 
+					    			id="refresh_clustering_button"),
+					], id="clustering-collapse"),
+
+					# Buttons to do the recalculations
+				    html.Button("Recalculate everything\n(run me first after upload & QC parameter selection)", 
+				    			 id="refresh_all_button"),
+
+				    html.Button("Recalculate pseudotime\n(select a starter cell first)", 
+				    			id="refresh_pseudotime_button"),
 				]),
 
-				# Buttons to do the recalculations
-			    html.Div(children=[
-				    html.Button("Recalculate projection", 
-				    			id="refresh_projection_button"),
-				    html.Button("Recalculate clusters", 
-				    			id="refresh_clustering_button"),
-				    html.Button("Recalculate everything", 
-				    			 id="refresh_all_button")
-			    ]),
-
-			    html.Div(children=[
-				    html.Button("Recalculate pseudotime", 
-				    			id="refresh_pseudotime_button")
-			    ]),
-			    html.Div(children=[
-				    html.Div(children=[
+			    dbc.Row(children=[
+				    dbc.Col(children=[
 					   	# pseudotime gene expression plot
 					    html.H3(children="Processing UMAP plots"),
 					    html.P("Use this dropdown menu to observe your data"),
 					    cc.processing_UMAP_dropdown(),
 				    	cc.plot_processing_UMAP()		
-					    ], className="six columns"),
-					html.Div(children=[
+					]),
+					dbc.Col(children=[
 						   	# pseudotime gene expression plot
 						    html.H3(children="Processing QC plots"),
 						    html.P("Use this dropdown menu view different QC facets"),
 						    cc.processing_QC_dropdown(),
 					    	cc.plot_processing_QC()		
-						    ], className="six columns"
-					),
-					], className="row"
-				)
-		    ]),
+					])
+				]),
+			]),
 
 		    ### ANNOTATION TAB ###
 			dcc.Tab(label='Annotation', children=[
 
 			    html.Div(children=[
-				    html.Button("Load old analysis", 
+				    html.Button("Load processed data", 
 				    			id="load_analysis_button"),
-		    		html.P("Press this button to get started by loading the original analysis and gene lists."),
+		    		html.P("Press this button to get started by loading the processed data"),
 				    html.Button("Save analysis", 
 				    			id="save_analysis_button", 
 				    			style={"display": "none"}),
@@ -283,7 +307,6 @@ def main_layout(session_id = None):
 			    ], className="row"
 			    )
 
-			]
-			),
+			]),
 		])
 	])
