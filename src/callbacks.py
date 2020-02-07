@@ -75,6 +75,8 @@ def refresh_clustering_plot(load_btn_clicks,
         adata = cache_adata(session_ID)
         clustering_group = clustering_plot_type
         if not (clustering_group == "leiden_n"):
+            if not (clustering_group in adata.obs):
+                adata.obs[clustering_group] = "0"
             adata.obs[clustering_group] = adata.obs[clustering_group].astype(str)
             # create a new unique cluster ID for this cluster in this clustering_group
             previous_cluster_IDs = adata.obs[clustering_group].unique()
@@ -126,6 +128,8 @@ def refresh_clustering_plot(load_btn_clicks,
     elif(button_id == "not_triggered"):
         return dash.no_update
 
+
+    adata = cache_adata(session_ID)
 
     # on first run with this dataset, add columns for user cluster annotations
     for i in ["user_" + str(j) for j in range(0, 10)]:
@@ -218,7 +222,7 @@ def update_single_gene_dropdown(n0, session_ID):
     if (n0 in [0, None]):
         return dash.no_update
     gene_list = cache_gene_list(session_ID)
-    gene_list.sort()
+    #gene_list = list(sorted(gene_list, key=str.lower))
     options = [{"label": i, "value": i} for i in gene_list]
     return options
 
@@ -247,7 +251,7 @@ def update_multi_gene_dropdown(n0, session_ID):
     if (n0 in [0, None]):
         return dash.no_update
     gene_list = cache_gene_list(session_ID)
-    gene_list.sort()
+    #gene_list = list(sorted(gene_list, key=str.lower))
     options = [{"label": i, "value": i} for i in gene_list]
     return options
 
@@ -371,20 +375,21 @@ def update_gene_data_table(selected_gene, session_ID):
 
 
 #### Processing page callbacks ####
-'''
+
 @app.callback(
-    [Output(f"{x}-collapse", "is_open") for x in ["upload", "QC", "projection", "clusters"]],
-    [Input(f"{x}-collapse-button", "n_clicks") for x in ["upload", "QC", "projection", "clusters"]],
-    [State(f"{x}-collapse", "is_open") for x in ["upload", "QC", "projection", "clusters"]],
+    [Output(f"{x}-collapse", "is_open") for x in ["upload", "QC", "projection", "clustering"]],
+    [Input(f"{x}-collapse-button", "n_clicks") for x in ["upload", "QC", "projection", "clustering"]],
+    [State(f"{x}-collapse", "is_open") for x in ["upload", "QC", "projection", "clustering"]],
 )
 def toggle_procssing_accordion(n1, n2, n3, n4, is_open1, is_open2, is_open3, is_open4):
+    print("[DEBUG] accordion triggered")
     ctx = dash.callback_context
 
     if not ctx.triggered:
-        return ""
+        return dash.no_update
     else:
         button_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
+    print("[DEBUG] button triggered: " + str(button_id))
     if button_id == "upload-collapse-button" and n1:
         return not is_open1, False, False, False
     elif button_id == "QC-collapse-button" and n2:
@@ -394,45 +399,6 @@ def toggle_procssing_accordion(n1, n2, n3, n4, is_open1, is_open2, is_open3, is_
     elif button_id == "clustering-collapse-button" and n4:
         return False, False, False, not is_open4
     return False, False, False, False
-'''    
-@app.callback(
-    Output("upload-collapse", "is_open"),
-    [Input("upload-collapse-button", "n_clicks")],
-    [State("upload-collapse", "is_open")],
-)
-def toggle_upload_collapse(n, is_open):
-    if n:
-        return not is_open
-    return is_open
-
-@app.callback(
-    Output("QC-collapse", "is_open"),
-    [Input("QC-collapse-button", "n_clicks")],
-    [State("QC-collapse", "is_open")],
-)
-def toggle_QC_collapse(n, is_open):
-    if n:
-        return not is_open
-    return is_open
-
-@app.callback(
-    Output("projection-collapse", "is_open"),
-    [Input("projection-collapse-button", "n_clicks")],
-    [State("projection-collapse", "is_open")],
-)
-def toggle_projection_collapse(n, is_open):
-    if n:
-        return not is_open
-    return is_open
-@app.callback(
-    Output("clustering-collapse", "is_open"),
-    [Input("clustering-collapse-button", "n_clicks")],
-    [State("clustering-collapse", "is_open")],
-)
-def toggle_clustering_collapse(n, is_open):
-    if n:
-        return not is_open
-    return is_open
 
 @app.callback(
     Output('upload_raw_data_success_output', 'children'),

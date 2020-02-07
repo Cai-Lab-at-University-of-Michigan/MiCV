@@ -41,7 +41,10 @@ def preprocess_data(session_ID, adata,
     cache_adata(session_ID, adata)
 
     # save the gene list for fast lookup
-    cache_gene_list(session_ID, adata.var.index.tolist())
+    gene_list = adata.var.index.tolist()
+    gene_list = [str(x) for x in gene_list]
+    gene_list = list(sorted(gene_list, key=str.lower))
+    cache_gene_list(session_ID, gene_list)
     return adata
 
 def do_PCA(session_ID, adata, n_comps=50, random_state=0):
