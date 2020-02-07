@@ -510,12 +510,16 @@ def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
         
         # get the starter cell from the processing plot and redo the pseudotime based on that
         # if there are multiple selected, take the last one
-        print("[DEBUG] selected_cells: " + str(selected_cells))
-        if ((selected_cells is None) or (len(selected_cells) != 1)):
-            print("[ERROR] please select exactly 1 cell to use as a pseudotime starter cell")
-        for cell in selected_cells["points"]:
-            starter_cell_ID = (cell["text"]).rsplit(" ", 1)[-1]
-        adata = cache_adata(session_ID)
+        if not (selected_cells is None):
+            adata = cache_adata(session_ID)
+            pt_selected_cell_IDs = get_cell_intersection(session_ID, adata, [selected_cells])
+
+        
+        if ((pt_selected_cell_IDs is None) or (len(pt_selected_cell_IDs) != 1)):
+            print("[ERROR] please select exactly 1 cell to use as a pseudotime starter cell"
+                + "\nUsing first cell in set")
+        starter_cell_ID = pt_selected_cell_IDs.pop()
+        
         adata = do_pseudotime(session_ID, adata, starter_cell_ID)
 
 
@@ -531,11 +535,13 @@ def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
         return dash.no_update
     
     # update the plot
+    if (processing_plot_type in [0, "", None, []]):
+        return dash.no_update
     print("[STATUS] updating plot by: " + str(processing_plot_type))
     adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
 
     if not (selected_cells is None):
-        cells_to_highlight = get_cell_intersection(session_ID, adata, selected_cells)
+        cells_to_highlight = get_cell_intersection(session_ID, adata, [selected_cells])
     else:
         cells_to_highlight = []
     if (processing_plot_type == "leiden_n"):

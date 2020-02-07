@@ -39,6 +39,9 @@ def preprocess_data(session_ID, adata,
     adata.obs["cell_numeric_index"] = [i for i in range(0,len(adata.obs.index))]
     print(["DEBUG: caching adata after preprocessing."])
     cache_adata(session_ID, adata)
+
+    # save the gene list for fast lookup
+    cache_gene_list(session_ID, adata.var.index.tolist())
     return adata
 
 def do_PCA(session_ID, adata, n_comps=50, random_state=0):

@@ -20,7 +20,7 @@ def generate_adata_from_10X(session_ID, data_dir=None):
 def cache_adata(session_ID, adata=None):
     #filename = save_analysis_path  + "adata_cache.h5ad"
     filename = save_analysis_path  + "adata_cache"
-    print("[DEBUG] filename = " + str(filename))
+    #print("[DEBUG] filename = " + str(filename))
     if (adata is None):
         if (path.isfile(filename  + ".h5ad") is True):
             adata = sc.read_h5ad(filename + ".h5ad")
@@ -78,6 +78,7 @@ def cache_gene_list(session_ID, gene_list=None):
         return gene_list
 
 # returns a list of cell_IDs 
+# expects a list of lists of datapoint dictionaries
 def get_cell_intersection(session_ID, adata, list_of_selections,
                           pt_min=0, pt_max=1):
     cell_intersection = set(adata.obs.index.to_list())

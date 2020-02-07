@@ -181,7 +181,7 @@ def single_gene_dropdown():
         options=[
             {'label': 'GeneA', 'value': 'GeneA'}
         ],
-        value=[],
+        value=None,
         multi=False,
         searchable=True
         )  
@@ -206,7 +206,7 @@ def pseudotime_dropdown():
             {'label': 'pseudotime', 'value': 'pseudotime'},
             {'label': 'differentiation potential', 'value': 'differentiation_potential'},
         ],
-        value="pseudotime",
+        value=None,
         placeholder="pseudotime",
         multi=False,
         searchable=True
@@ -224,7 +224,7 @@ def clustering_dropdown():
             {'label': 'user_3', 'value': 'user_3'},
             {'label': 'user_4', 'value': 'user_4'},
         ],
-        value="leiden_n",
+        value=None,
         placeholder="leiden",
         multi=False,
         searchable=True
@@ -284,7 +284,7 @@ def processing_UMAP_dropdown():
             {'label': "# UMIs (log1p)", "value": "# UMIs (log1p)"},
             {'label': "# unique genes", "value": "# unique genes"},
         ],
-        value="leiden_n",
+        value=None,
         placeholder="leiden",
         multi=False,
         searchable=True
@@ -326,7 +326,7 @@ def processing_QC_dropdown():
         {'label': '# UMIs (log1p)', 'value': 'log1p_total_counts'},
         {'label': '# unique genes', 'value': 'n_genes'},
     ],
-    value="total_counts",
+    value=None,
     placeholder="# UMIs (log1p)",
     multi=False,
     searchable=True
