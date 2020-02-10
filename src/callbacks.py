@@ -1,6 +1,7 @@
 import dash
 from dash.dependencies import Input, Output, State
 import dash_html_components as html
+from flask import send_file
 import plotly.graph_objs as go
 import time
 import re #regex
@@ -690,3 +691,22 @@ def refresh_marker_gene_plot(n_clicks, obs_column, groups_to_rank,
     adata = cache_adata(session_ID)
     return plotting.plot_marker_genes(adata, obs_column, groups_to_rank, method)
  
+
+#### Download analysis page callbacks ####
+@app.server.route('/MiCV/download/h5ad')
+def serve_anndata_h5ad():
+    print("[STATUS] preparing to serve anndata in h5ad format")
+    f = save_analysis_path + "adata_cache.h5ad"
+    if (os.path.isfile(f)):
+        print("[DEBUG] file " + f + " found - serving")
+        with open(f, "rb") as b:
+            return send_file(io.BytesIO(b.read()), 
+                             as_attachment=True,
+                             attachment_filename="adata.h5ad",
+                             mimetype="application/octet-stream"
+                    )
+    else:
+        print("[ERROR] file " + f + " not available for download")
+        return ("Error - file not generated yet. Go back in your browser," 
+              + "upload your raw data, and perform QC before downloading.")
+    

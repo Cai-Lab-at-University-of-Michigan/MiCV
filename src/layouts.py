@@ -12,7 +12,8 @@ def main_layout(session_id = None):
 	return session_id, html.Div(children=[
 	    html.Div(session_id, id='session-id', style={'display': 'none'}),
 	    html.Div([], id='null_container_0', style={'display': 'none'}), # stores nothing, useful output endpoint for callbacks that don't modify anything in the UI
-	    
+	    html.Div([], id='null_container_1', style={'display': 'none'}), # stores nothing, useful output endpoint for callbacks that don't modify anything in the UI
+
 	    dbc.Container(fluid=True, children=[
 		    # title matter
 		    html.H1(children="MiCV"),
@@ -371,7 +372,26 @@ def main_layout(session_id = None):
 						)
 				    ], 
 				    )
-				]),
+				]), ## end annotation tab
+
+				### DOWNLOAD ANALYSIS TAB ###
+				dbc.Tab(label="Download analysis", children=[
+					dbc.Row(children=[
+						dbc.Col(children=[
+							html.H3(children="Download analysis"),
+							html.P(
+								'''
+								Download a copy of your scRNA-seq data in h5ad format.
+								This data is a scanpy-readable anndata object, ready
+								for further analysis using scanpy.
+								'''),
+							html.A(id='download_anndata_h5ad_button', 
+								   children="Download h5ad file",
+								   href="/MiCV/download/h5ad") # TODO: remove hardlink
+						], width=6),
+					]),
+
+				]), # end download analysis tab
 			])
 		])
 ])
