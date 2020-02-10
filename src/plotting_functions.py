@@ -3,10 +3,17 @@ import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
 
+import matplotlib.pyplot as plt
+
 import pandas as pd
 import numpy as np
 import anndata as ad
 import seaborn as sns
+
+import base64
+
+from helper_functions import *
+from analysis_functions import *
 
 min_opacity = 0.2
 max_opacity = 0.9
@@ -221,3 +228,22 @@ def plot_expression_violin(adata, selected_genes):
             transition = {'duration': 100},
         )
     }
+
+def plot_marker_genes(adata, obs_column, groups_to_rank, method):
+    sc.settings.figdir = save_analysis_path
+    print("[STATUS] identifying marker genes")
+    image_filename = "dotplot.png"
+    adata = identify_marker_genes(adata, obs_column, groups_to_rank, method)
+    
+    print("[STATUS] plotting marker genes")
+    if ("all" in groups_to_rank):
+    	ax = sc.pl.rank_genes_groups_dotplot(adata, key="rank_genes_groups", 
+		                                 dendrogram=False, groupby=obs_column, show=False,
+		                                 save=".png")
+    else:
+	    ax = sc.pl.rank_genes_groups_dotplot(adata[adata.obs[obs_column].isin(groups_to_rank),:], 
+			                                 groups=groups_to_rank, key="rank_genes_groups", 
+			                                 dendrogram=False, groupby=obs_column, show=False,
+			                                 save=".png")
+    encoded_image = base64.b64encode(open(save_analysis_path + image_filename, 'rb').read())
+    return html.Img(src='data:image/png;base64,{}'.format(encoded_image.decode()))

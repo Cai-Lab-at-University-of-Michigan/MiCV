@@ -5,14 +5,23 @@ import scanpy as sc
 import anndata as ad
 import numpy as np
 
+from analysis_functions import *
+
 save_analysis_path = "/srv/www/MiCV/cache/"
 
 
-def generate_adata_from_10X(session_ID, data_dir=None):
+def generate_adata_from_10X(session_ID, data_type="10X_mtx"):
     #data_dir = "/home/nigelmic/bioinformatics/Solo.out"
-    data_dir = save_analysis_path + "/" + session_ID
+    data_dir = save_analysis_path + "/" + "raw_data"
     print("[STATUS] loading data from " + str(data_dir))
-    adata = sc.read_10x_mtx(data_dir)
+    if (data_type == "10X_mtx"):
+        adata = sc.read_10x_mtx(data_dir)
+    elif (data_type == "10X_h5"):
+        adata = sc.read_10x_h5(data_dir + "data.h5ad")
+    else:
+        print("[ERROR] data type not recognized - returning None")
+        return None
+
 
     cache_adata(session_ID, adata)
     return adata

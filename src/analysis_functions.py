@@ -10,7 +10,7 @@ import palantir
 
 from helper_functions import *
 
-def preprocess_data(session_ID, adata,
+def preprocess_data(session_ID,
                     min_cells=2, min_genes=200, max_genes=10000,
                     target_sum=1e6, flavor="cell_ranger", 
                     n_top_genes=2000):
@@ -145,3 +145,11 @@ def do_pseudotime_gene_trends(session_ID, d, genes):
                                                           d.imp_df.loc[:, genes])
     cache_gene_trends(session_ID, gene_trends)
     return gene_trends
+
+def identify_marker_genes(adata, obs_column, groups_to_rank, method):
+    if ("all" in groups_to_rank):
+        sc.tl.rank_genes_groups(adata, groupby=obs_column, method=method)
+    else:
+        sc.tl.rank_genes_groups(adata, groupby=obs_column, 
+                                groups=groups_to_rank, method=method)
+    return adata

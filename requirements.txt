@@ -9,5 +9,5 @@ flask_caching==1.8.0
 gunicorn==19.9.0
 umap-learn==0.3.0
 git+https://github.com/theislab/anndata.git
-scanpy==1.4.4.post3
+scanpy==1.4.5.post3
 git+https://github.com/dpeerlab/Palantir.git@6168f60c0ea416d87d622fccb0c0709dde2cc88c

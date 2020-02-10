@@ -413,7 +413,7 @@ def parse_uploaded_10X(contents, filename, session_ID):
     if not ("zip" in filename):
         return "Uploaded file must be a flat .zip file containing the 10X directory contents"
 
-    save_dir = helper_functions.save_analysis_path + "/" + session_ID + "/"
+    save_dir = helper_functions.save_analysis_path + "/raw_data/"
     if not (os.path.isdir(save_dir)):
         os.mkdir(save_dir)
 
@@ -485,7 +485,7 @@ def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
                             clust_btn_clicks, pt_btn_clicks, processing_plot_type, 
                             session_ID, n_neighbors, resolution, min_max_genes,
                             min_cells, n_top_genes, selected_cells,
-                            adata=None, data_dir=None, target_sum=1e6, 
+                            adata=None, target_sum=1e6, 
                             flavor="cell_ranger", n_comps=50, random_state=0):
 
     print("[STATUS] refreshing processing UMAP plot")
@@ -518,7 +518,7 @@ def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
         if (all_btn_clicks in [None, 0]):
             return dash.no_update
         print("[STATUS] refreshing everything")   
-        adata = preprocess_data(session_ID, data_dir, min_cells=min_cells,
+        adata = preprocess_data(session_ID, min_cells=min_cells,
                                 min_genes=min_max_genes[0], 
                                 max_genes=min_max_genes[1], 
                                 target_sum=target_sum, flavor=flavor, 
@@ -598,3 +598,95 @@ def refresh_violin_QC_plot(selected_QC, session_ID):
     # plot function expects list of factors/genes, but for QC
     # we will only show one at a time - pass a list anyways though
     return plotting.plot_expression_violin(adata, [selected_QC])
+
+
+
+#### Marker gene page callbacks ####
+@app.callback(
+    Output("marker_gene_UMAP_dropdown", "options"),
+    [Input("refresh_all_button", "n_clicks")],
+    [State('session-id', 'children')]
+)
+def refresh_marker_gene_UMAP_dropdown(all_btn_clicks, session_ID):
+    print("[STATUS] refreshing marker gene UMAP dropdown options")
+    # figure out which button was pressed - what refresh functions to call
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        button_id = "not_triggered"
+        return dash.no_update
+    else:
+        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if  (button_id == "refresh_all_button"):
+        if (all_btn_clicks in [None, 0]):
+            return dash.no_update
+
+    adata = cache_adata(session_ID)
+    a = adata.obs.select_dtypes(include=["category"])
+    options = [
+        {"label": str(x), "value": str(x)} for x in a.columns.to_list()
+    ]
+    return options
+
+@app.callback(
+    [Output("marker_gene_group_dropdown", "options"),
+     Output("marker_gene_UMAP_plot", "figure")],
+    [Input("marker_gene_UMAP_dropdown", "value")],
+    [State('session-id', 'children')]
+)
+def refresh_marker_gene_group_dropdown(obs_column, session_ID):
+    print("[STATUS] refreshing marker gene group dropdown options")
+    default_return = [dash.no_update, dash.no_update]
+    # figure out which button was pressed - what refresh functions to call
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        button_id = "not_triggered"
+        return [dash.no_update, dash.no_update]
+    else:
+        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if not (button_id == "marker_gene_UMAP_dropdown"): 
+        return default_return
+
+    adata = cache_adata(session_ID)
+    
+    if ((adata is None) or (obs_column is None)):
+        return default_return
+
+    options = [
+        {"label": str(x), "value": x} for x in (adata.obs[obs_column]).unique()
+    ]
+    options.insert(0, {"label": "all (default)", "value": "all"})
+    fig = plotting.plot_UMAP(adata, obs_column)
+    
+    return [options, fig]
+    return default_return
+
+@app.callback(
+    Output("marker_gene_plot", "children"),
+    [Input("recalculate_marker_genes", "n_clicks")],
+    [State("marker_gene_UMAP_dropdown", "value"),
+     State("marker_gene_group_dropdown", "value"),
+     State("marker_gene_method_radio", "value"),
+     State('session-id', 'children')]
+)
+def refresh_marker_gene_plot(n_clicks, obs_column, groups_to_rank, 
+                             method, session_ID):
+    print("[STATUS] refreshing marker gene plot")
+    # figure out which button was pressed - what refresh functions to call
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        button_id = "not_triggered"
+        return dash.no_update
+    else:
+        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if not (button_id == "recalculate_marker_genes"):
+        return dash.no_update
+
+    if (n_clicks in [[], None, 0]):
+        return dash.no_update
+
+    adata = cache_adata(session_ID)
+    return plotting.plot_marker_genes(adata, obs_column, groups_to_rank, method)
+ 
