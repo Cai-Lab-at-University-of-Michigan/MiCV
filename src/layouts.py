@@ -44,8 +44,9 @@ def main_layout(session_id = None):
 						            dcc.Upload(
 								        id='upload_raw_data',
 								        children=html.Div([
-								            '''Drag and drop a .zip file containing your 10X output
-								            directory's contents, or ''',
+								            '''Drag and drop either an h5ad anndata object,
+								            or a .zip file containing your 10X output
+								            directory's contents. Alternatively ''',
 								            html.A('select a file')
 								        ]),
 								        style={
@@ -192,6 +193,7 @@ def main_layout(session_id = None):
 											''')
 										], style={'marginBottom': 20, 'marginTop': 20}
 									),
+									cc.neighbors_method_radio(),
 									dbc.Button("Recalculate (only) projection", 
 							    				id="refresh_projection_button"),
 								], id="projection-collapse"),

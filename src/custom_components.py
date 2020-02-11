@@ -335,6 +335,17 @@ def processing_QC_dropdown():
     ) 
     return m
 
+def neighbors_method_radio():
+    m = dcc.RadioItems(
+        id="neighbors_method_radio",
+        options=[
+            {'label': 'standard', 'value': 'standard'},
+            {'label': 'batch-corrected (bbknn)', 'value': 'bbknn'}
+        ],
+        value='standard'
+        )
+    return m
+
 ### MARKER GENE TAB CUSTOM COMPONENTS ###
 def marker_gene_UMAP_dropdown():
     m = dcc.Dropdown(

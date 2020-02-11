@@ -190,30 +190,6 @@ def refresh_pseudotime_plot(pt_plot_type, session_ID, load_btn_clicks,
     return plotting.plot_pseudotime_UMAP(adata, pt_plot_type)
 
 
-
-@app.callback(
-    Output("null_container_0", "children"),
-    [Input("save_analysis_button", "n_clicks")],
-    [State('session-id', 'children')]
-)
-def save_analysis(save_btn_clicks, session_ID):
-    
-    # figure out which button was triggered
-    ctx = dash.callback_context
-    if (not ctx.triggered):
-        button_id = "not_triggered"
-        return dash.no_update
-    else:
-        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-            
-    if(button_id == "save_analysis_button"):
-        if (save_btn_clicks in [None, 0]):
-            pass
-        else:
-            adata = cache_adata(session_ID)
-            cache_adata(session_ID, adata)
-        return dash.no_update
-
 @app.callback(
     Output("single_gene_dropdown", "options"),
     [Input("load_analysis_button", "n_clicks")],
@@ -406,26 +382,34 @@ def toggle_procssing_accordion(n1, n2, n3, n4, is_open1, is_open2, is_open3, is_
     [Input('upload_raw_data', 'contents')],
     [State('upload_raw_data', 'filename'),
      State('session-id', 'children')])
-def parse_uploaded_10X(contents, filename, session_ID):
+def parse_uploaded_data(contents, filename, session_ID):
     if (filename is None):
         return dash.no_update
 
-    print("[STATUS] parsing raw 10X data upload")
-    if not ("zip" in filename):
-        return "Uploaded file must be a flat .zip file containing the 10X directory contents"
-
-    save_dir = helper_functions.save_analysis_path + "/raw_data/"
-    if not (os.path.isdir(save_dir)):
-        os.mkdir(save_dir)
-
+    print("[STATUS] parsing data upload")
+    
     content_type, content_string = contents.split(',')
 
-    decoded = base64.b64decode(content_string)
+    if ("h5ad" in filename):
+        decoded = base64.b64decode(content_string)
+        with open(helper_functions.save_analysis_path + "adata_cache.h5ad", "wb") as f:
+            f.write(decoded)
+        adata = cache_adata(session_ID)
+        adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
+        cache_adata(session_ID, adata)
+        return "Anndata object uploaded successfully"
+    if ("zip" in filename):
+        save_dir = helper_functions.save_analysis_path + "raw_data/"
+        if not (os.path.isdir(save_dir)):
+            os.mkdir(save_dir)
 
-    data = zf.ZipFile(io.BytesIO(decoded), mode="r")
-    data.extractall(path=save_dir)
+        decoded = base64.b64decode(content_string)
+        data = zf.ZipFile(io.BytesIO(decoded), mode="r")
+        data.extractall(path=save_dir)
+        return "Raw 10X data uploaded successfully"
 
-    return "Uploaded data parsed successfully"
+    return "Uploaded file not recognized. Upload an anndata object in h5ad format or zipped 10X ouput data."
+
 
 @app.callback(
     Output('min_max_genes_slider_output_container', 'children'),
@@ -473,7 +457,8 @@ def update_clustering_resolution_output(value):
      Input("refresh_projection_button", "n_clicks"),
      Input("refresh_clustering_button", "n_clicks"),
      Input("refresh_pseudotime_button", "n_clicks"),
-     Input("processing_UMAP_dropdown", "value")],
+     Input("processing_UMAP_dropdown", "value"),
+     Input("neighbors_method_radio", "value")],
     [State("session-id", "children"),
      State("n_neighbors_slider", "value"),
      State("clustering_resolution_slider", "value"),
@@ -483,9 +468,9 @@ def update_clustering_resolution_output(value):
      State("processing_UMAP_plot", "selectedData")]
 )
 def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
-                            clust_btn_clicks, pt_btn_clicks, processing_plot_type, 
-                            session_ID, n_neighbors, resolution, min_max_genes,
-                            min_cells, n_top_genes, selected_cells,
+                            clust_btn_clicks, pt_btn_clicks, processing_plot_type,
+                            method, session_ID, n_neighbors, resolution, 
+                            min_max_genes, min_cells, n_top_genes, selected_cells,
                             adata=None, target_sum=1e6, 
                             flavor="cell_ranger", n_comps=50, random_state=0):
 
@@ -526,7 +511,7 @@ def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
                                 n_top_genes=n_top_genes)
         adata, = do_PCA(session_ID, adata, n_comps=n_comps, 
                         random_state=random_state),
-        adata = do_neighborhood_graph(session_ID, adata, 
+        adata = do_neighborhood_graph(session_ID, adata, method,
                                       n_neighbors=n_neighbors, 
                                       random_state=random_state)
         adata = do_UMAP(session_ID, adata, random_state=random_state)
@@ -623,6 +608,9 @@ def refresh_marker_gene_UMAP_dropdown(all_btn_clicks, session_ID):
             return dash.no_update
 
     adata = cache_adata(session_ID)
+    if (adata is None):
+        return dash.no_update
+
     a = adata.obs.select_dtypes(include=["category"])
     options = [
         {"label": str(x), "value": str(x)} for x in a.columns.to_list()

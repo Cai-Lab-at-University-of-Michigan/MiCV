@@ -56,9 +56,14 @@ def do_PCA(session_ID, adata, n_comps=50, random_state=0):
     cache_adata(session_ID, new_adata)
     return new_adata
 
-def do_neighborhood_graph(session_ID, adata, n_neighbors=20, random_state=0):
+def do_neighborhood_graph(session_ID, adata, method="standard",
+                          n_neighbors=20, random_state=0):
     print("[STATUS] finding neighbors")
-    sc.pp.neighbors(adata, n_neighbors=n_neighbors, random_state=random_state)
+    if ((method == "standard") or (not ("batch" in adata.obs))):
+        sc.pp.neighbors(adata, n_neighbors=n_neighbors, random_state=random_state)
+    elif (method == "bbknn"):
+        sc.external.pp.bbknn(adata, n_neighbors=n_neighbors, batch_key="batch")
+
     new_adata = adata.copy()
 
     cache_adata(session_ID, new_adata)
