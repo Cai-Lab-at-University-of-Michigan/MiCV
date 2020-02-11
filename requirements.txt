@@ -11,3 +11,5 @@ umap-learn==0.3.0
 git+https://github.com/theislab/anndata.git
 scanpy==1.4.5.post3
 git+https://github.com/dpeerlab/Palantir.git@6168f60c0ea416d87d622fccb0c0709dde2cc88c
+dash-bootstrap-components==0.8.2
+bbknn==1.3.7
