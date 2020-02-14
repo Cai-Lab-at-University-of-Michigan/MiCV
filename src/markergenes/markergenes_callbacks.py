@@ -3,6 +3,8 @@ import pandas as pd
 import dash
 from dash.dependencies import Input, Output, State
 
+from . markergenes_functions import identify_marker_genes
+
 from plotting_functions import *
 from helper_functions import *
 from app import app
@@ -10,10 +12,10 @@ from app import app
 #### Marker gene page callbacks ####
 @app.callback(
     Output("marker_gene_UMAP_dropdown", "options"),
-    [Input("refresh_all_button", "n_clicks")],
+    [Input("refresh_all_status", "children")],
     [State('session-id', 'children')]
 )
-def refresh_marker_gene_UMAP_dropdown(all_btn_clicks, session_ID):
+def refresh_marker_gene_UMAP_dropdown(processing_status, session_ID):
     print("[STATUS] refreshing marker gene UMAP dropdown options")
     # figure out which button was pressed - what refresh functions to call
     ctx = dash.callback_context
@@ -23,8 +25,9 @@ def refresh_marker_gene_UMAP_dropdown(all_btn_clicks, session_ID):
     else:
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    if  (button_id == "refresh_all_button"):
-        if (all_btn_clicks in [None, [], 0]):
+    if  (True):
+        print("[DEBUG] processing_status: " + str(processing_status))
+        if (processing_status in [None, [], 0, ""]):
             return dash.no_update
 
     adata = cache_adata(session_ID)
@@ -62,7 +65,6 @@ def refresh_marker_gene_group_dropdown(obs_column, session_ID):
     
     if ((adata is None) or (obs_column is None)):
         return default_return
-    print("[DEBUG] adata: " + str(adata))
     options = [
         {"label": str(x), "value": x} for x in (adata.obs[obs_column]).unique()
     ]
@@ -97,4 +99,5 @@ def refresh_marker_gene_plot(n_clicks, obs_column, groups_to_rank,
         return dash.no_update
 
     adata = cache_adata(session_ID)
-    return plot_marker_genes(adata, obs_column, groups_to_rank, method)
+    adata = identify_marker_genes(adata, obs_column, groups_to_rank, method)
+    return plot_marker_genes(adata, obs_column, groups_to_rank)

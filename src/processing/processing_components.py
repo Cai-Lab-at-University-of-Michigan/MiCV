@@ -41,10 +41,9 @@ def processing_UMAP_dropdown():
         id='processing_UMAP_dropdown',
         options=[
             {'label': 'leiden', 'value': 'leiden_n'},
-            {'label': 'psuedotime', 'value': 'pseudotime'},
-            {'label': 'differentiation potential', 'value': 'differentiation potential'},
-            {'label': "# UMIs (log1p)", "value": "# UMIs (log1p)"},
-            {'label': "# unique genes", "value": "# unique genes"},
+            {'label': "# UMIs ", "value": "total_counts"},
+            {'label': "# UMIs [ln(1+UMIs)]", "value": "log1p_total_counts"},
+            {'label': "# unique genes", "value": "n_genes"},
         ],
         value=None,
         placeholder="leiden",
@@ -85,8 +84,9 @@ def processing_QC_dropdown():
     m = dcc.Dropdown(
     id='processing_QC_dropdown',
     options=[
-        {'label': '# UMIs (log1p)', 'value': 'log1p_total_counts'},
-        {'label': '# unique genes', 'value': 'n_genes'},
+        {'label': "# UMIs ", "value": "total_counts"},
+        {'label': "# UMIs [ln(1+UMIs)]", "value": "log1p_total_counts"},
+        {'label': "# unique genes", "value": "n_genes"}
     ],
     value=None,
     placeholder="# UMIs (log1p)",

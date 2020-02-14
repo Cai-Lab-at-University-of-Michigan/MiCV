@@ -13,6 +13,7 @@ app.layout = html.Div([
 
 from processing import processing_callbacks
 from markergenes import markergenes_callbacks
+from pseudotime import pseudotime_callbacks
 from annotation import annotation_callbacks
 from exporting import exporting_callbacks
 

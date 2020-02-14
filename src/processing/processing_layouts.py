@@ -226,14 +226,8 @@ def processing_layout():
 				    	Run this first after uploading your data 
 				    	& doing QC parameter selection
 						'''),
-				    dbc.Button("Recalculate pseudotime", 
-				    			id="refresh_pseudotime_button"),
-				    html.P('''
-				    	Be sure to select a starter cell in the plot 
-				    	below before running this.\nThis will take a
-				    	lonnnngggg time and might fail to converge; please
-				    	be patient.
-						'''),
+				    html.Div(id='refresh_all_status',
+						     style={'margin-top': 20})
 			    ], width=3)
 			]),
 

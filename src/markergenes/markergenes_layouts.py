@@ -10,7 +10,7 @@ def markergenes_layout():
 						html.H3(children="Clustering plot"),
 						html.P(
 							'''
-							obs columns with fewer than 50 unique values
+							obs columns 
 							can be used to define groups for marker gene 
 							identification (typically you should use the 
 							leiden column or one of the user_n manually 

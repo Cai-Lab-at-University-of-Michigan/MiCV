@@ -4,6 +4,7 @@ import uuid
 
 from processing.processing_layouts import *
 from markergenes.markergenes_layouts import *
+from pseudotime.pseudotime_layouts import *
 from annotation.annotation_layouts import *
 from exporting.exporting_layouts import *
 
@@ -28,6 +29,9 @@ def main_layout(session_id = None):
 				
 				### MARKER GENE TAB ###
 				markergenes_layout(),
+
+				### PSEUDOTIME TAB ###
+				pseudotime_layout(),
 				
 			    ### ANNOTATION TAB ###
 			    annotation_layout(),

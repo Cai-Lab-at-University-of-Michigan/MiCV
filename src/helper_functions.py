@@ -5,8 +5,6 @@ import scanpy as sc
 import anndata as ad
 import numpy as np
 
-from analysis_functions import *
-
 save_analysis_path = "/srv/www/MiCV/cache/"
 
 

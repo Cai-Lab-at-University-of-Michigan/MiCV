@@ -13,10 +13,9 @@ import seaborn as sns
 import base64
 
 from helper_functions import *
-from analysis_functions import *
+from markergenes import *
 
-min_opacity = 0.2
-max_opacity = 0.9
+from plotting.plotting_parameters import scale, min_opacity, max_opacity
 
 def plot_UMAP(adata, clustering_plot_type, selected_cell_intersection=[]):
     print("[DEBUG] generating new UMAP plot")
@@ -62,6 +61,8 @@ def plot_UMAP(adata, clustering_plot_type, selected_cell_intersection=[]):
             legend={'x': 0, 'y': 1},
             hovermode='closest',
             transition = {'duration': 250},
+            width=4 * scale,
+            height=3 * scale
         )
     }
 
@@ -107,6 +108,8 @@ def plot_pseudotime_UMAP(adata, pt_plot_type):
             legend={'x': 0, 'y': 1},
             hovermode='closest',
             transition = {'duration': 250},
+            width=4 * scale,
+            height=3 * scale
         )
     }
 
@@ -148,6 +151,8 @@ def plot_expression_UMAP(adata, selected_gene):
             legend={'x': 0, 'y': 1},
             hovermode='closest',
             transition = {'duration': 100},
+            width=4 * scale,
+            height=3 * scale
         )
     }
 
@@ -229,21 +234,20 @@ def plot_expression_violin(adata, selected_genes):
         )
     }
 
-def plot_marker_genes(adata, obs_column, groups_to_rank, method):
+def plot_marker_genes(adata, obs_column, groups_to_rank):
     sc.settings.figdir = save_analysis_path
     print("[STATUS] identifying marker genes")
     image_filename = "dotplot.png"
-    adata = identify_marker_genes(adata, obs_column, groups_to_rank, method)
     
     print("[STATUS] plotting marker genes")
     if ("all" in groups_to_rank):
-    	ax = sc.pl.rank_genes_groups_dotplot(adata, key="rank_genes_groups", 
-		                                 dendrogram=False, groupby=obs_column, show=False,
-		                                 save=".png")
+        ax = sc.pl.rank_genes_groups_dotplot(adata, key="rank_genes_groups", 
+                                         dendrogram=False, groupby=obs_column, show=False,
+                                         save=".png")
     else:
-	    ax = sc.pl.rank_genes_groups_dotplot(adata[adata.obs[obs_column].isin(groups_to_rank),:], 
-			                                 groups=groups_to_rank, key="rank_genes_groups", 
-			                                 dendrogram=False, groupby=obs_column, show=False,
-			                                 save=".png")
+        ax = sc.pl.rank_genes_groups_dotplot(adata[adata.obs[obs_column].isin(groups_to_rank),:], 
+                                             groups=groups_to_rank, key="rank_genes_groups", 
+                                             dendrogram=False, groupby=obs_column, show=False,
+                                             save=".png")
     encoded_image = base64.b64encode(open(save_analysis_path + image_filename, 'rb').read())
     return html.Img(src='data:image/png;base64,{}'.format(encoded_image.decode()))

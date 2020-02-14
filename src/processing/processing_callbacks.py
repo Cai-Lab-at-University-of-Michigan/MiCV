@@ -128,11 +128,11 @@ def update_clustering_resolution_output(value):
     return "clustering resolution = " + str(value)
 
 @app.callback(
-    Output("processing_UMAP_plot", "figure"),
+    [Output("processing_UMAP_plot", "figure"),
+     Output("refresh_all_status", "children")],
     [Input("refresh_all_button", "n_clicks"),
      Input("refresh_projection_button", "n_clicks"),
      Input("refresh_clustering_button", "n_clicks"),
-     Input("refresh_pseudotime_button", "n_clicks"),
      Input("processing_UMAP_dropdown", "value"),
      Input("neighbors_method_radio", "value")],
     [State("session-id", "children"),
@@ -140,35 +140,35 @@ def update_clustering_resolution_output(value):
      State("clustering_resolution_slider", "value"),
      State("min_max_genes_slider", "value"),
      State("min_cells_slider", "value"),
-     State("n_top_genes_slider", "value"),
-     State("processing_UMAP_plot", "selectedData")]
+     State("n_top_genes_slider", "value")]
 )
 def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
-                            clust_btn_clicks, pt_btn_clicks, processing_plot_type,
+                            clust_btn_clicks, processing_plot_type,
                             neighborhood_method, session_ID, n_neighbors, resolution, 
-                            min_max_genes, min_cells, n_top_genes, selected_cells,
+                            min_max_genes, min_cells, n_top_genes,
                             adata=None, target_sum=1e6, 
                             flavor="cell_ranger", n_comps=50, random_state=0):
-
+    
+    default_return = [dash.no_update, dash.no_update]
     print("[STATUS] refreshing processing UMAP plot")
     # figure out which button was pressed - what refresh functions to call
     ctx = dash.callback_context
     if not ctx.triggered:
         button_id = "not_triggered"
-        return dash.no_update
+        return default_return
     else:
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
 
     if  (button_id == "refresh_clustering_button"):
         if (clust_btn_clicks in [None, 0]):
-            return dash.no_update
+            return default_return
         adata = cache_adata(session_ID)
         adata = do_clustering(session_ID, adata, resolution=resolution)
     
     elif(button_id == "refresh_projection_button"):
         if (proj_btn_clicks in [None, 0]):
-            return dash.no_update
+            return default_return
         adata = cache_adata(session_ID)   
         adata = do_neighborhood_graph(session_ID, adata, 
                                       n_neighbors=n_neighbors, 
@@ -179,72 +179,52 @@ def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
     elif(button_id == "refresh_all_button"):
         print("[DEBUG] refresh_all_button clicked")
         if (all_btn_clicks in [None, 0]):
-            return dash.no_update
+            return default_return
         print("[STATUS] refreshing everything")   
         adata = preprocess_data(session_ID, min_cells=min_cells,
                                 min_genes=min_max_genes[0], 
                                 max_genes=min_max_genes[1], 
                                 target_sum=target_sum, flavor=flavor, 
                                 n_top_genes=n_top_genes)
-        adata = do_PCA(session_ID, adata, n_comps=n_comps, 
+        adata, = do_PCA(session_ID, adata, n_comps=n_comps, 
                         random_state=random_state),
-        adata = do_neighborhood_graph(session_ID, adata, method,
+        adata = do_neighborhood_graph(session_ID, adata, neighborhood_method,
                                       n_neighbors=n_neighbors, 
                                       random_state=random_state)
         adata = do_UMAP(session_ID, adata, random_state=random_state)
         adata = do_clustering(session_ID, adata, resolution=resolution)
-
-    elif(button_id == "refresh_pseudotime_button"):
-        print("[DEBUG] refresh_pseudotime_button clicked")
-        if (pt_btn_clicks in [None, 0]):
-            return dash.no_update
-        
-        # get the starter cell from the processing plot and redo the pseudotime based on that
-        # if there are multiple selected, take the last one
-        if not (selected_cells is None):
-            adata = cache_adata(session_ID)
-            pt_selected_cell_IDs = get_cell_intersection(session_ID, adata, [selected_cells])
-
-        
-        if ((pt_selected_cell_IDs is None) or (len(pt_selected_cell_IDs) != 1)):
-            print("[ERROR] please select exactly 1 cell to use as a pseudotime starter cell"
-                + "\nUsing first cell in set")
-        starter_cell_ID = pt_selected_cell_IDs.pop()
-        
-        adata = do_pseudotime(session_ID, adata, starter_cell_ID)
-
+        default_return[1] = "Processing successful"
 
     # if it's a dropdown menu update - load adata
     elif(button_id == "processing_UMAP_dropdown"):
         if (processing_plot_type in [0, "", None, []]):
-            return dash.no_update
+            return default_return
         else:
             adata = cache_adata(session_ID)
 
-        # do nothing if no buttons pressed
+    # do nothing if no buttons pressed
     elif(button_id == "not_triggered"):
-        return dash.no_update
+        return default_return
     
     # update the plot
     if (processing_plot_type in [0, "", None, []]):
-        return dash.no_update
+        return default_return
+
     print("[STATUS] updating plot by: " + str(processing_plot_type))
     adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
 
-    if not (selected_cells is None):
-        cells_to_highlight = get_cell_intersection(session_ID, adata, [selected_cells])
-    else:
-        cells_to_highlight = []
     if (processing_plot_type == "leiden_n"):
-        return plot_UMAP(adata, "leiden_n", cells_to_highlight)
+        return plot_UMAP(adata, "leiden_n"), "processing successful"
     elif (processing_plot_type == "pseudotime"):
-        return plot_pseudotime_UMAP(adata, "pseudotime")
+        return plot_pseudotime_UMAP(adata, "pseudotime"), "processing successful"
     elif (processing_plot_type == "differentiation potential"):
-        return plot_pseudotime_UMAP(adata, "differentiation_potential")
-    elif (processing_plot_type == "# UMIs (log1p)"):
-        return plot_expression_UMAP(adata, "log1p_total_counts")
-    elif (processing_plot_type == "# unique genes"):
-        return plot_expression_UMAP(adata, "n_genes")
+        return plot_pseudotime_UMAP(adata, "differentiation_potential"), "processing successful"
+    elif (processing_plot_type == "total_counts"):
+        return plot_expression_UMAP(adata, "total_counts"), "processing successful"
+    elif (processing_plot_type == "n_genes"):
+        return plot_expression_UMAP(adata, "n_genes"), "processing successful"
+    elif (processing_plot_type == "log1p_total_counts"):
+        return plot_expression_UMAP(adata, "log1p_total_counts"), "processing successful"
 
 @app.callback(
     Output("processing_QC_plot", "figure"),
