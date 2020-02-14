@@ -15,7 +15,10 @@
    version="1.1"
    id="svg1351"
    inkscape:version="0.92.4 5da689c313, 2019-01-14"
-   sodipodi:docname="MiCV_logo.svg">
+   sodipodi:docname="MiCV_logo.svg"
+   inkscape:export-filename="/home/nigelmic/data/programming/dash/scanpy/images/MiCV_logo.png"
+   inkscape:export-xdpi="150"
+   inkscape:export-ydpi="150">
   <defs
      id="defs1345">
     <marker
@@ -138,8 +141,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.49497475"
-     inkscape:cx="940.88093"
-     inkscape:cy="-77.94288"
+     inkscape:cx="330.7488"
+     inkscape:cy="-124.4099"
      inkscape:document-units="mm"
      inkscape:current-layer="g2303"
      showgrid="false"

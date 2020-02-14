@@ -1,7 +1,7 @@
 import dash
 from flask_caching import Cache
-import layouts
 
+import layouts
 
 app = dash.Dash(__name__, show_undo_redo=False)
 

@@ -5,24 +5,25 @@ import uuid
 
 from app import app
 import layouts
-import callbacks
-
-#session_id = str(uuid.uuid4())
-session_id = "testing"
 
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
     html.Div(id='page-content')
 ])
 
+from processing import processing_callbacks
+from markergenes import markergenes_callbacks
+from annotation import annotation_callbacks
+from exporting import exporting_callbacks
+
 @app.callback(Output('page-content', 'children'),
               [Input('url', 'pathname')])
 def display_page(pathname):
     if pathname == '/MiCV':
-        session_id, layout =  layouts.main_layout()
+        layout =  layouts.main_layout()
         return layout
     elif pathname == '/information':
-        session_id, layout = layouts.information()
+        layout = layouts.information()
         return layout
     else:
         return "404 URL not found"

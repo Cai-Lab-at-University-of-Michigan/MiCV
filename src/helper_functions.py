@@ -15,7 +15,7 @@ def generate_adata_from_10X(session_ID, data_type="10X_mtx"):
     data_dir = save_analysis_path + "/" + "raw_data"
     print("[STATUS] loading data from " + str(data_dir))
     if (data_type == "10X_mtx"):
-        adata = sc.read_10x_mtx(data_dir)
+        adata = sc.read_10x_mtx(data_dir, cache=True)
     elif (data_type == "10X_h5"):
         adata = sc.read_10x_h5(data_dir + "data.h5ad")
     else:
