@@ -47,7 +47,15 @@ def annotation_layout():
 					   	# expression plot
 					    html.H3(children="Gene expression (projection)"),
 					    html.P("Visualize expression of a single highly-variable gene across single cells, and pull up data from Flybase (Oct, 2019) on the selected gene"),
-					    cc.single_gene_dropdown(),
+					    dbc.Row(children=[
+					    	dbc.Col(children=[
+					    		cc.single_gene_dropdown(),
+					    		cc.mixed_gene_dropdown()
+					    	], width=9),
+					    	dbc.Col(children=[
+					    		cc.single_gene_expression_radio()
+					    	], width=3),
+						]),
 					    cc.plot_expression_UMAP(),
 					    html.H3(children="Gene information"),
 					    cc.gene_data_table()

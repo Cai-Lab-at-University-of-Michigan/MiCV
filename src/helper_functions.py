@@ -5,6 +5,8 @@ import scanpy as sc
 import anndata as ad
 import numpy as np
 
+from plotting.multi_color_scale import MultiColorScale
+
 save_analysis_path = "/srv/www/MiCV/cache/"
 
 
@@ -187,3 +189,20 @@ def get_disease_data(session_ID, selected_gene):
     ret = diseases.loc[diseases["Dmel_gene_ID"] == selected_gene]
     #ret = ret["gene_snapshot_text"]
     return ret
+
+def cache_multicolor_scale(multi_color_scale=None):
+    filename = save_analysis_path + "multi_color_scale.pickle"
+    if (multi_color_scale is None):
+        if (path.isfile(filename) is True):
+            with open(filename, "rb") as f:
+                multi_color_scale = pickle.load(f)
+        else:
+            print("[ERROR] multi_color_scale cache does not exist at: " + str(filename))
+            multi_color_scale = MultiColorScale()
+            with open(filename, "wb") as f:
+                pickle.dump(multi_color_scale, f)
+        return multi_color_scale
+    else:
+        with open(filename, "wb") as f:
+            pickle.dump(multi_color_scale, f)
+        return multi_color_scale

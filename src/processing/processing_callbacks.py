@@ -7,7 +7,7 @@ import base64
 import io
 
 from helper_functions import *
-from plotting_functions import *
+from plotting.plotting_functions import *
 from app import app
 
 from . processing_functions import *

@@ -3,7 +3,7 @@ from dash.dependencies import Input, Output, State
 import dash_html_components as html
 
 from helper_functions import *
-from plotting_functions import *
+from plotting.plotting_functions import *
 from app import app
 
 #### Annotation page callbacks ####
@@ -186,23 +186,45 @@ def update_single_gene_dropdown(n0, session_ID):
     if (n0 in [0, None]):
         return dash.no_update
     gene_list = cache_gene_list(session_ID)
-    #gene_list = list(sorted(gene_list, key=str.lower))
     options = [{"label": i, "value": i} for i in gene_list]
     return options
 
+@app.callback(
+    Output("mixed_gene_dropdown", "options"),
+    [Input("load_analysis_button", "n_clicks")],
+    [State("session-id", "children")]
+)
+def update_mixed_gene_dropdown(n0, session_ID):
+    if (n0 in [0, None]):
+        return dash.no_update
+    gene_list = cache_gene_list(session_ID)
+    options = [{"label": i, "value": i} for i in gene_list]
+    return options
 
 @app.callback(
     Output("expression_UMAP_plot", "figure"),
-    [Input("single_gene_dropdown", "value")],
+    [Input("single_gene_dropdown", "value"),
+     Input("mixed_gene_dropdown", "value"),
+     Input("single_gene_expression_radio", "value")],
     [State('session-id', 'children')]
 )
-def refresh_expression_UMAP_plot(selected_gene, session_ID):
-    if (selected_gene in [None, 0, []]):
-        return dash.no_update
+def refresh_expression_UMAP_plot(selected_gene, selected_mixed_genes,
+                                 multi, session_ID):
+    
+    if (multi == "single"):
+        if (selected_gene in [None, 0, []]):
+            return dash.no_update
+        else:
+            plot_these_genes = [selected_gene]
+    else:
+        if (selected_mixed_genes in [None, 0, []]):
+            return dash.no_update
+        else:
+            plot_these_genes = selected_mixed_genes
 
     adata = cache_adata(session_ID)
     print("[STATUS] updating expression UMAP plot")
-    return plot_expression_UMAP(adata, selected_gene)
+    return plot_expression_UMAP(adata, plot_these_genes, multi)
 
 
 @app.callback(
@@ -254,14 +276,18 @@ def refresh_violin_gene_plot(selected_genes, session_ID):
 @app.callback(
     Output('gene_data_table', 'children'),
     [Input('single_gene_dropdown', 'value')],
-    [State('session-id', 'children')]
+    [State('session-id', 'children'),
+     State('single_gene_expression_radio', 'value')]
 )
-def update_gene_data_table(selected_gene, session_ID):
-    print("[STATUS] getting data for selected_gene: " 
+def update_gene_data_table(selected_gene, session_ID, multi):
+    print("[STATUS] getting data for first of selected_gene: " 
           + str(selected_gene))
 
     if (selected_gene in [None, "", 0, []]):
         return dash.no_update
+
+    if (multi == "multiple"):
+        selected_gene = selected_gene[0]
 
     d = get_ortholog_data(session_ID, selected_gene)
     d = d.sort_values(by="DIOPT_score", ascending=False, na_position="last")

@@ -5,7 +5,7 @@ from dash.dependencies import Input, Output, State
 
 from . markergenes_functions import identify_marker_genes
 
-from plotting_functions import *
+from plotting.plotting_functions import *
 from helper_functions import *
 from app import app
 

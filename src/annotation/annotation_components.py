@@ -64,15 +64,6 @@ def plot_pseudotime_UMAP():
     )
     return g
 
-def gene_list_dropdown(gene_list):
-    if (gene_list is None):
-        gene_list = []
-    return dcc.Dropdown(
-        id='gene_list_dropdown',
-        options=[{'label': i, 'value': i} for i in gene_list],
-        value='Genes'
-    )
-
 def plot_gene_pseudotime():
     g = dcc.Graph(
         id='pseudotime_gene_plot',
@@ -162,6 +153,16 @@ def plot_gene_violin():
     )
     return g
 
+def single_gene_expression_radio():
+    m = dcc.RadioItems(
+        id="single_gene_expression_radio",
+        options=[
+            {'label': 'single', 'value': 'single'},
+            {'label': 'mixed', 'value': 'mixed'}
+        ],
+        value='single'
+        )
+    return m  
 
 def single_gene_dropdown():
     m = dcc.Dropdown(
@@ -171,7 +172,19 @@ def single_gene_dropdown():
         ],
         value=None,
         multi=False,
-        searchable=True
+        searchable=True,
+        )  
+    return m
+
+def mixed_gene_dropdown():
+    m = dcc.Dropdown(
+        id='mixed_gene_dropdown',
+        options=[
+            {'label': 'GeneA', 'value': 'GeneA'}
+        ],
+        value=None,
+        multi=True,
+        searchable=True,
         )  
     return m
 

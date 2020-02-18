@@ -2,7 +2,7 @@ import dash
 from dash.dependencies import Input, Output, State
 
 from helper_functions import *
-from plotting_functions import *
+from plotting.plotting_functions import *
 from app import app
 
 from . pseudotime_functions import *
