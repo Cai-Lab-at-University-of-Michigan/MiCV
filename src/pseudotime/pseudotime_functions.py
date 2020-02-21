@@ -13,8 +13,12 @@ def do_pseudotime(session_ID, adata, starter_cell_ID=None):
     ms_data = palantir.utils.determine_multiscale_space(dm_res)
 
     # We're just going to use the UMAP projection instead
-    tsne = pd.DataFrame(adata.obsm["X_umap"], index=adata.obs.index)
-    tsne.columns = ["x", "y"]
+    if (np.shape(adata.obsm["X_umap"])[1] == 2):
+        tsne = pd.DataFrame(adata.obsm["X_umap"], index=adata.obs.index)
+        tsne.columns = ["x", "y"]
+    elif (np.shape(adata.obsm["X_umap"])[1] == 3):
+        tsne = pd.DataFrame(adata.obsm["X_umap"], index=adata.obs.index)
+        tsne.columns = ["x", "y", "z"]
 
     imp_df = palantir.utils.run_magic_imputation(a, dm_res, n_steps=1)
     
@@ -33,11 +37,14 @@ def do_pseudotime(session_ID, adata, starter_cell_ID=None):
                                         scale_components=False)
     adata.obs["pseudotime"] = pr_res.pseudotime[tsne.index]
     adata.obs["differentiation_potential"] = pr_res.entropy[tsne.index]
-
+    
+    # drop old branch probabilities if they exist, then add new ones
+    adata.obs.drop(list(adata.obs.filter(regex='pseudotime_branch_')), 
+                   axis=1, inplace=True)
+    for i, branch in enumerate(pr_res.branch_probs.columns):
+        adata.obs["pseudotime_branch_" + str(i)] = pr_res.branch_probs.loc[tsne.index, branch]
     genes = adata.var.index.tolist()
-    #genes = ["CycE", "dap", "Hey", "nSyb"]
-    #print("[DEBUG] genes: " + str(genes))
-    #print("[DEBUG] d.imp_df.loc[:, genes]: " + str(d.imp_df.loc[:, genes]))
+
     print("[STATUS] computing all gene trends (this will take a while)")
     gene_trends = palantir.presults.compute_gene_trends(pr_res, 
                                                         imp_df.loc[:, genes])

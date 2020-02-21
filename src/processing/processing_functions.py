@@ -14,6 +14,7 @@ def preprocess_data(session_ID,
                     n_top_genes=2000):
 
     adata = cache_adata(session_ID)
+    print("[DEBUG] adata: " + str(adata))
 
     # do preprocessing
     print("[STATUS] performing QC and normalizing data")
@@ -64,11 +65,12 @@ def do_neighborhood_graph(session_ID, adata, method="standard",
     cache_adata(session_ID, new_adata)
     return new_adata
 
-def do_UMAP(session_ID, adata, random_state=0):
+def do_UMAP(session_ID, adata, n_dim_proj=2, random_state=0):
     print("[STATUS] doing a UMAP projection")
     new_adata = sc.tl.umap(adata, random_state=random_state, 
-                           init_pos="spectral", copy=True)
-    
+                           init_pos="spectral", n_components=n_dim_proj, 
+                           copy=True)
+
     cache_adata(session_ID, new_adata)
     return new_adata
 

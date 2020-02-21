@@ -25,10 +25,8 @@ def refresh_marker_gene_UMAP_dropdown(processing_status, session_ID):
     else:
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    if  (True):
-        print("[DEBUG] processing_status: " + str(processing_status))
-        if (processing_status in [None, [], 0, ""]):
-            return dash.no_update
+    if (processing_status in [None, [], 0, ""]):
+        return dash.no_update
 
     adata = cache_adata(session_ID)
     if (adata is None):
@@ -43,21 +41,27 @@ def refresh_marker_gene_UMAP_dropdown(processing_status, session_ID):
 @app.callback(
     [Output("marker_gene_group_dropdown", "options"),
      Output("marker_gene_UMAP_plot", "figure")],
-    [Input("marker_gene_UMAP_dropdown", "value")],
-    [State('session-id', 'children')]
+    [Input("marker_gene_UMAP_dropdown", "value"),
+     Input("refresh_all_status", "children")],
+    [State('session-id', 'children'),
+     State("n_dims_proj_markergenes_radio", "value")]
 )
-def refresh_marker_gene_group_dropdown(obs_column, session_ID):
+def refresh_marker_gene_group_dropdown(obs_column, processing_status, 
+                                       session_ID, n_dims_proj):
     print("[STATUS] refreshing marker gene group dropdown options")
     default_return = [dash.no_update, dash.no_update]
     # figure out which button was pressed - what refresh functions to call
     ctx = dash.callback_context
     if not ctx.triggered:
         button_id = "not_triggered"
-        return [dash.no_update, dash.no_update]
+        return default_return
     else:
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     if not (button_id == "marker_gene_UMAP_dropdown"): 
+        return default_return
+
+    if (processing_status in [None, [], 0, ""]):
         return default_return
 
     print("[DEBUG] loading adata")
@@ -69,7 +73,7 @@ def refresh_marker_gene_group_dropdown(obs_column, session_ID):
         {"label": str(x), "value": x} for x in (adata.obs[obs_column]).unique()
     ]
     options.insert(0, {"label": "all (default)", "value": "all"})
-    fig = plot_UMAP(adata, obs_column)
+    fig = plot_UMAP(adata, obs_column, n_dim=n_dims_proj)
     
     return [options, fig]
 

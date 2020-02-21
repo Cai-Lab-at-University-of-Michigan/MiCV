@@ -22,16 +22,7 @@ def plot_processing_UMAP():
                     },
                     name=str("NULL")
                 )
-            ],
-            'layout': go.Layout(
-                xaxis={'title': 'UMAP1'},
-                yaxis={'title': "UMAP2"},
-                margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
-                legend={'x': 0, 'y': 1},
-                hovermode='closest',
-                width=4 * scale,
-                height=3 * scale
-            )
+            ]
         }
     )
     return g
@@ -103,5 +94,27 @@ def neighbors_method_radio():
             {'label': 'batch-corrected (bbknn)', 'value': 'bbknn'}
         ],
         value='standard'
+        )
+    return m
+
+def n_dims_proj_radio():
+    m = dcc.RadioItems(
+        id="n_dims_proj_radio",
+        options=[
+            {'label': '2D ', 'value': 2},
+            {'label': '3D ', 'value': 3}
+        ],
+        value=2
+        )
+    return m
+
+def n_dims_processing_radio():
+    m = dcc.RadioItems(
+        id="n_dims_processing_radio",
+        options=[
+            {'label': '2D ', 'value': 2},
+            {'label': '3D ', 'value': 3}
+        ],
+        value=2
         )
     return m

@@ -18,6 +18,10 @@ def pseudotime_layout():
 				    	lonnnngggg time and might fail to converge; please
 				    	be patient.
 						'''),
+				    html.Div(
+				    	 id="pseudotime_calculation_status",
+				    	 children=[]
+				    )
 			    ], width=3),
 			]),
 			dbc.Row(children=[

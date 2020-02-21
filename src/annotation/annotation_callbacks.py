@@ -147,10 +147,11 @@ def refresh_clustering_plot(load_btn_clicks,
     Output("pseudotime_UMAP_plot", "figure"),
     [Input("pseudotime_dropdown", "value")],
     [State('session-id', 'children'),
-     State("load_analysis_button", "n_clicks")]
+     State("load_analysis_button", "n_clicks"),
+     State("n_dims_proj_expression_radio", "value")]
 )
-def refresh_pseudotime_plot(pt_plot_type, session_ID, load_btn_clicks,
-                            adata=None, data_dir=None):
+def refresh_pseudotime_plot(pt_plot_type, session_ID, load_btn_clicks, 
+                            n_dims_proj,adata=None, data_dir=None):
 
     print("[STATUS] refreshing pseudotime plot")
     # figure out which button was pressed - what refresh functions to call
@@ -206,16 +207,17 @@ def update_mixed_gene_dropdown(n0, session_ID):
     [Input("single_gene_dropdown", "value"),
      Input("mixed_gene_dropdown", "value"),
      Input("single_gene_expression_radio", "value")],
-    [State('session-id', 'children')]
+    [State('session-id', 'children'),
+     State("n_dims_proj_radio", "value")]
 )
 def refresh_expression_UMAP_plot(selected_gene, selected_mixed_genes,
-                                 multi, session_ID):
+                                 multi, session_ID, n_dims_proj):
     
-    if (multi == "single"):
+    if (multi == "standard"):
         if (selected_gene in [None, 0, []]):
             return dash.no_update
         else:
-            plot_these_genes = [selected_gene]
+            plot_these_genes = selected_gene
     else:
         if (selected_mixed_genes in [None, 0, []]):
             return dash.no_update
@@ -224,7 +226,7 @@ def refresh_expression_UMAP_plot(selected_gene, selected_mixed_genes,
 
     adata = cache_adata(session_ID)
     print("[STATUS] updating expression UMAP plot")
-    return plot_expression_UMAP(adata, plot_these_genes, multi)
+    return plot_expression_UMAP(adata, plot_these_genes, multi, n_dim=n_dims_proj)
 
 
 @app.callback(
@@ -241,23 +243,23 @@ def update_multi_gene_dropdown(n0, session_ID):
 
 @app.callback(
     Output("pseudotime_gene_plot", "figure"),
-    [Input("multi_gene_dropdown", "value")],
+    [Input("multi_gene_dropdown", "value"),
+     Input("pseudotime_gene_relative_radio", "value"),
+     Input("pseudotime_gene_branch_dropdown", "value")],
     [State('session-id', 'children')]
 )
-def refresh_pseudotime_gene_plot(selected_genes, session_ID):
+def refresh_pseudotime_gene_plot(selected_genes, relative, branch_n, session_ID):
     print("[STATUS] plotting gene pseudotime expression for: " + str(selected_genes))
     if (selected_genes in [None, 0, []]):
         return dash.no_update
 
     gene_trends = cache_gene_trends(session_ID)
 
-    # rearrange some data before plotting
-    branches = list(gene_trends.keys())
+    branches = list(gene_trends.keys()) #branch names (cell_IDs of terminal cells)
 
-    # TODO: intelligent branch selection
-    return plot_expression_trend(gene_trends, branches[1], selected_genes)
-
-
+    return plot_expression_trend(gene_trends, selected_genes, 
+                                 selected_branch=branches[branch_n], 
+                                 relative=relative)
 
 @app.callback(
     Output("violin_gene_plot", "figure"),

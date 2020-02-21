@@ -20,8 +20,16 @@ from plotting.plotting_parameters import scale
 min_opacity = 0.2
 max_opacity = 0.9
 
-def plot_UMAP(adata, clustering_plot_type, selected_cell_intersection=[]):
+def plot_UMAP(adata, clustering_plot_type, selected_cell_intersection=[], n_dim=2):
     print("[DEBUG] generating new UMAP plot")
+
+    # validate that there is a 3D projection available if that was requested
+    if (n_dim == 3):
+        real_n_dim = np.shape(adata.obsm["X_umap"])[1]
+        if (real_n_dim == 3):
+            n_dim = 3
+        else:
+            n_dim = 2
 
     traces = []
     for i,val in enumerate(sorted(adata.obs[clustering_plot_type].unique())):
@@ -33,48 +41,83 @@ def plot_UMAP(adata, clustering_plot_type, selected_cell_intersection=[]):
 	        for c in selected_cell_intersection:
 	            if (c in a.obs["cell_numeric_index"]):
 	                s.append((a.obs).index.get_loc(c))
-        traces.append(
-            go.Scattergl(
-                x=a.obsm["X_umap"][:,0],
-                y=a.obsm["X_umap"][:,1],
-                text="Cell ID: " + a.obs["cell_ID"],
-                mode='markers',
-                selectedpoints=s,
-                marker={
-                    'size': 10,
-                    'line': {'width': 1, 'color': 'grey'},
-                    "color": discrete_colors_3[i%len(discrete_colors_3)]
-                },
-                unselected={
-                    "marker": {"opacity": min_opacity,
-                    }
-                },
-                selected={
-                    "marker": {"opacity": max_opacity,
-                    }
-                },
-                name=("Cluster " + str(val))
+        if (n_dim == 2):
+            traces.append(
+                go.Scattergl(
+                    x=a.obsm["X_umap"][:,0],
+                    y=a.obsm["X_umap"][:,1],
+                    text="Cell ID: " + a.obs["cell_ID"],
+                    mode='markers',
+                    selectedpoints=s,
+                    marker={
+                        'size': 10,
+                        'line': {'width': 1, 'color': 'grey'},
+                        "color": discrete_colors_3[i%len(discrete_colors_3)]
+                    },
+                    unselected={
+                        "marker": {"opacity": min_opacity,
+                        }
+                    },
+                    selected={
+                        "marker": {"opacity": max_opacity,
+                        }
+                    },
+                    name=("Cluster " + str(val))
+                )
             )
-        )
-    return {
-        'data': traces,
-        'layout': dict(
-            xaxis={"title": "UMAP 1"},
-            yaxis={"title": "UMAP 2"},
-            margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
-            legend={'x': 0, 'y': 1},
-            hovermode='closest',
-            transition = {'duration': 250},
-            width=4 * scale,
-            height=3 * scale
-        )
-    }
+        elif (n_dim == 3):
+            traces.append(
+                go.Scatter3d(
+                    x=a.obsm["X_umap"][:,0],
+                    y=a.obsm["X_umap"][:,1],
+                    z=a.obsm["X_umap"][:,2],
+                    text="Cell ID: " + a.obs["cell_ID"],
+                    mode='markers',
+                    marker={
+                        'size': 2,
+                        'line': {'width': 1, 'color': 'grey'},
+                        "color": discrete_colors_3[i%len(discrete_colors_3)]
+                    },
+                    name=("Cluster " + str(val))
+                )
+            )
+    if (n_dim == 2):
+        return {
+            'data': traces,
+            'layout': dict(
+                xaxis={"title": "UMAP 1"},
+                yaxis={"title": "UMAP 2"},
+                margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                legend={'x': 0, 'y': 1},
+                hovermode='closest',
+                transition = {'duration': 250},
+                width=4 * scale,
+                height=3 * scale
+            )
+        }
+    elif (n_dim == 3):
+        return {
+            'data': traces,
+            'layout': dict(
+                xaxis={"title": "UMAP 1"},
+                yaxis={"title": "UMAP 2"},
+                zaxis={"title": "UMAP 3"},
+                margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                legend={'x': 0, 'y': 1},
+                hovermode='closest',
+                transition = {'duration': 250},
+                width=4 * scale,
+                height=3 * scale
+            )
+        }
 
 def plot_pseudotime_UMAP(adata, pt_plot_type):
     if (pt_plot_type == "pseudotime"):
     	colorbar_label = "pseudotime"
     elif (pt_plot_type == "differentiation_potential"):
     	colorbar_label = "diff. pot."
+    elif ("pseudotime_branch_" in pt_plot_type):
+        colorbar_label = "branch " + str(pt_plot_type[-1]) + " prob."
     traces = []
     traces.append(
         go.Scattergl(
@@ -117,99 +160,170 @@ def plot_pseudotime_UMAP(adata, pt_plot_type):
         )
     }
 
-def plot_expression_UMAP(adata, selected_genes, multi):
-    if (multi == "single"):
-        colorscale = "viridis"
-        selected_gene = selected_genes[0]
-        traces = []
-        traces.append(
-            go.Scattergl(
-                x=adata.obsm["X_umap"][:,0],
-                y=adata.obsm["X_umap"][:,1],
-                text="Cell ID: " + adata.obs["cell_ID"],
-                mode='markers',
-                marker={
-                    'size': 10,
-                    'line': {'width': 1, 'color': 'grey'},
-                    "color": adata.obs_vector(selected_gene),
-                    "colorscale": colorscale,
-                    "cmin": 0,
-                    "cmax": np.max(adata.obs_vector(selected_gene)),
-                    "colorbar": dict(
-                        title=str(selected_gene)
-                    ),
-                },
-                unselected={
-                    "marker": {"opacity": min_opacity,
-                    }
-                },
-                selected={
-                    "marker": {"opacity": max_opacity,
-                    }
-                },
-            )
-        )
+def plot_expression_UMAP(adata, selected_genes, multi="standard", n_dim=2):
+    
+    # validate that there is a 3D projection available if that was requested
+    if (n_dim == 3):
+        real_n_dim = np.shape(adata.obsm["X_umap"])[1]
+        if (real_n_dim == 3):
+            n_dim = 3
+        else:
+            n_dim = 2    
 
+    if (multi == "standard"):
+        colorscale = "viridis"
+        selected_gene = selected_genes
+        traces = []
+        if (n_dim == 2):
+            traces.append(
+                go.Scattergl(
+                    x=adata.obsm["X_umap"][:,0],
+                    y=adata.obsm["X_umap"][:,1],
+                    text="Cell ID: " + adata.obs["cell_ID"],
+                    mode='markers',
+                    marker={
+                        'size': 10,
+                        'line': {'width': 1, 'color': 'grey'},
+                        "color": adata.obs_vector(selected_gene),
+                        "colorscale": colorscale,
+                        "cmin": 0,
+                        "cmax": np.max(adata.obs_vector(selected_gene)),
+                        "colorbar": dict(
+                            title=str(selected_gene)
+                        ),
+                    },
+                    unselected={
+                        "marker": {"opacity": min_opacity,
+                        }
+                    },
+                    selected={
+                        "marker": {"opacity": max_opacity,
+                        }
+                    },
+                )
+            )
+        elif (n_dim == 3):
+            traces.append(
+                go.Scatter3d(
+                    x=adata.obsm["X_umap"][:,0],
+                    y=adata.obsm["X_umap"][:,1],
+                    z=adata.obsm["X_umap"][:,2],
+                    text="Cell ID: " + adata.obs["cell_ID"],
+                    mode='markers',
+                    marker={
+                        'size': 2,
+                        'line': {'width': 1, 'color': 'grey'},
+                        "color": adata.obs_vector(selected_gene),
+                        "colorscale": colorscale,
+                        "cmin": 0,
+                        "cmax": np.max(adata.obs_vector(selected_gene)),
+                        "colorbar": dict(
+                            title=str(selected_gene)
+                        ),
+                    },
+                )
+            )
+    
     else:
         if (len(selected_genes) > 3):
             selected_genes = selected_genes[0:3]
-
         color_values = get_mixed_expression_value(*[adata.obs_vector(selected_genes[g]) for g in range(0, len(selected_genes))])
         traces = []
-        traces.append(
-            go.Scattergl(
-                x=adata.obsm["X_umap"][:,0],
-                y=adata.obsm["X_umap"][:,1],
-                text="Cell ID: " + adata.obs["cell_ID"],
-                mode='markers',
-                marker={
-                    'size': 10,
-                    'line': {'width': 1, 'color': 'grey'},
-                    "color": color_values,
-                },
-                unselected={
-                    "marker": {"opacity": min_opacity,
-                    }
-                },
-                selected={
-                    "marker": {"opacity": max_opacity,
-                    }
-                },
+        if (n_dim == 2):
+            traces.append(
+                go.Scattergl(
+                    x=adata.obsm["X_umap"][:,0],
+                    y=adata.obsm["X_umap"][:,1],
+                    text="Cell ID: " + adata.obs["cell_ID"],
+                    mode='markers',
+                    marker={
+                        'size': 10,
+                        'line': {'width': 1, 'color': 'grey'},
+                        "color": color_values,
+                    },
+                    unselected={
+                        "marker": {"opacity": min_opacity,
+                        }
+                    },
+                    selected={
+                        "marker": {"opacity": max_opacity,
+                        }
+                    },
+                )
             )
-        )
-    return {
-        'data': traces,
-        'layout': dict(
-            xaxis={"title": "UMAP 1"},
-            yaxis={"title": "UMAP 2"},
-            margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
-            legend={'x': 0, 'y': 1},
-            hovermode='closest',
-            transition = {'duration': 100},
-            width=4 * scale,
-            height=3 * scale
-        )
-    }
+        elif (n_dim == 3):
+            traces.append(
+                go.Scatter3d(
+                    x=adata.obsm["X_umap"][:,0],
+                    y=adata.obsm["X_umap"][:,1],
+                    z=adata.obsm["X_umap"][:,2],
+                    text="Cell ID: " + adata.obs["cell_ID"],
+                    mode='markers',
+                    marker={
+                        'size': 2,
+                        'line': {'width': 1, 'color': 'grey'},
+                        "color": color_values,
+                    },
+                )
+            )    
 
-def plot_expression_trend(gene_trends, selected_branch, selected_genes):
+    if (n_dim == 2):
+        return {
+            'data': traces,
+            'layout': dict(
+                xaxis={"title": "UMAP 1"},
+                yaxis={"title": "UMAP 2"},
+                margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                legend={'x': 0, 'y': 1},
+                hovermode='closest',
+                transition = {'duration': 250},
+                width=4 * scale,
+                height=3 * scale
+            )
+        }
+    elif (n_dim == 3):
+        return {
+            'data': traces,
+            'layout': dict(
+                xaxis={"title": "UMAP 1"},
+                yaxis={"title": "UMAP 2"},
+                zaxis={"title": "UMAP 3"},
+                margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                legend={'x': 0, 'y': 1},
+                hovermode='closest',
+                transition = {'duration': 250},
+                width=4 * scale,
+                height=3 * scale
+            )
+        }
+
+def plot_expression_trend(gene_trends, selected_genes, selected_branch, 
+                          relative="absolute"):
     traces = []
     trends = gene_trends[selected_branch]["trends"]
     stds = gene_trends[selected_branch]["std"] * 25
+
     colors = pd.Series(sns.color_palette('Set2', len(selected_genes)).as_hex(), 
                        index=selected_genes)
     for i in selected_genes:
         if not (i in trends.index):
             print("[DEBUG] gene " + str(i)  + " not in gene trends; skipping")
             continue
+        if (relative == "relative"):
+            trend = trends.loc[i,:] / np.max(trends.loc[i,:])
+            std   = stds.loc[i,:] / np.max(stds.loc[i,:])
+        else:
+            trend = trends.loc[i,:]
+            std   = stds.loc[i,:]
         traces.append(
             go.Scattergl(
                 x=trends.columns,
-                y=trends.loc[i, :],
+                y=trend,
                 text=str(i),
                 mode="lines+markers",
                 opacity=0.7,
                 marker={
-                    'size': stds.loc[i, :],
+                    'size': std,
                     'line': {'width': 2, 'color': colors[i]},
                     "color": colors[i],
                     "opacity": 0.25
@@ -219,7 +333,7 @@ def plot_expression_trend(gene_trends, selected_branch, selected_genes):
         )
     
     if (traces in [[], None]):
-        print("[DEBUG] no traces added to violin plot")
+        print("[DEBUG] no traces added to expression trends plot")
         return dash.no_update
 
     return {

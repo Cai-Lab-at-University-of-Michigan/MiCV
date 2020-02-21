@@ -53,7 +53,8 @@ def annotation_layout():
 					    		cc.mixed_gene_dropdown()
 					    	], width=9),
 					    	dbc.Col(children=[
-					    		cc.single_gene_expression_radio()
+					    		cc.single_gene_expression_radio(),
+					    		cc.n_dims_proj_expression_radio()
 					    	], width=3),
 						]),
 					    cc.plot_expression_UMAP(),
@@ -66,6 +67,8 @@ def annotation_layout():
 					    html.H3(children="Gene expression (pseudotime/bulk)"),
 					    html.P("Visualize the expression of multiple highly-variable genes against pseudotime or across all cells from the entire dataset"),
 					    cc.multi_gene_dropdown(),
+					    cc.pseudotime_gene_relative_radio(),
+					    cc.pseudotime_gene_branch_dropdown(),
 					    cc.plot_gene_pseudotime(),
 					    cc.plot_gene_violin()
 					    ], width=6,

@@ -173,6 +173,18 @@ def processing_layout():
 								], style={'marginBottom': 20, 'marginTop': 20}
 							),
 							cc.neighbors_method_radio(),
+							html.Div(id='n_dims_proj_radio_output_container',
+						    		 style={'margin-top': 20}),
+							cc.n_dims_proj_radio(),
+							html.Div([
+							    html.P('''
+							    	How many dimensions for the UMAP projection - choose
+							    	3 if you'd like to have the ability to do 
+							    	3D projections, at the expense of having slightly 
+							    	compressed 2D projections.
+									''')
+								], style={'marginBottom': 20, 'marginTop': 20}
+							),
 							dbc.Button("Recalculate (only) projection", 
 					    				id="refresh_projection_button"),
 						], id="projection-collapse"),
@@ -237,7 +249,8 @@ def processing_layout():
 				    html.H3(children="Processing UMAP plots"),
 				    html.P("Use this dropdown menu to observe your data"),
 				    cc.processing_UMAP_dropdown(),
-			    	dcc.Loading(children=[cc.plot_processing_UMAP()])		
+				    cc.n_dims_processing_radio(),
+			    	dcc.Loading(children=[cc.plot_processing_UMAP()])	
 				], width=6),
 				dbc.Col(children=[
 					    html.H3(children="Processing QC plots"),

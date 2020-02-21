@@ -17,6 +17,7 @@ def markergenes_layout():
 							annotated columns)
 							'''),
 						cc.marker_gene_UMAP_dropdown(),
+						cc.n_dims_proj_markergenes_radio(),
 						cc.plot_marker_gene_UMAP()
 					], width=6),
 				]),

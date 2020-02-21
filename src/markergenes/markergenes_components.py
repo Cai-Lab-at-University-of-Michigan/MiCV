@@ -9,11 +9,9 @@ def marker_gene_UMAP_dropdown():
     m = dcc.Dropdown(
     id='marker_gene_UMAP_dropdown',
     options=[
-        {'label': 'leiden', 'value': 'leiden'},
-        {'label': 'user_0', 'value': 'user_0'},
     ],
     value=None,
-    placeholder="leiden",
+    placeholder="group",
     multi=False,
     searchable=True
     ) 
@@ -53,10 +51,9 @@ def marker_gene_group_dropdown():
     m = dcc.Dropdown(
         id="marker_gene_group_dropdown",
         options=[
-            {'label': 'all (default)', 'value': 'all'},
         ],
         value=None,
-        placeholder="group_0",
+        placeholder="group",
         multi=True,
         searchable=True
         ) 
@@ -81,4 +78,15 @@ def marker_gene_plot():
         children=[
             html.Img(src=None)
         ])
+    return m
+
+def n_dims_proj_markergenes_radio():
+    m = dcc.RadioItems(
+        id="n_dims_proj_markergenes_radio",
+        options=[
+            {'label': '2D ', 'value': 2},
+            {'label': '3D ', 'value': 3}
+        ],
+        value=2
+        )
     return m

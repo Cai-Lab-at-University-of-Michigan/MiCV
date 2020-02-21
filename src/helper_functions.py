@@ -15,7 +15,7 @@ def generate_adata_from_10X(session_ID, data_type="10X_mtx"):
     data_dir = save_analysis_path + "/" + "raw_data"
     print("[STATUS] loading data from " + str(data_dir))
     if (data_type == "10X_mtx"):
-        adata = sc.read_10x_mtx(data_dir, cache=True)
+        adata = sc.read_10x_mtx(data_dir, cache=False)
     elif (data_type == "10X_h5"):
         adata = sc.read_10x_h5(data_dir + "data.h5ad")
     else:
@@ -36,7 +36,8 @@ def cache_adata(session_ID, adata=None):
 
         if not (adata is None):
             if not ("leiden_n" in adata.obs):
-                adata.obs["leiden_n"] = pd.to_numeric(adata.obs["leiden"])
+                if ("leiden" in adata.obs):
+                    adata.obs["leiden_n"] = pd.to_numeric(adata.obs["leiden"])
             if not ("cell_ID" in adata.obs):
                 adata.obs["cell_ID"] = adata.obs.index
             if not ("cell_ID" in adata.obs):
@@ -82,6 +83,7 @@ def cache_gene_list(session_ID, gene_list=None):
             gene_list = ["NULL"]
         return gene_list
     else:
+        gene_list.sort(key=str.lower)
         with open(filename, "wb") as f:
             pickle.dump(gene_list, f)
         return gene_list

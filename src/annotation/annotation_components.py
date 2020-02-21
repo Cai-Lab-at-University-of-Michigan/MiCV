@@ -157,10 +157,10 @@ def single_gene_expression_radio():
     m = dcc.RadioItems(
         id="single_gene_expression_radio",
         options=[
-            {'label': 'single', 'value': 'single'},
+            {'label': 'standard', 'value': 'standard'},
             {'label': 'mixed', 'value': 'mixed'}
         ],
-        value='single'
+        value='standard'
         )
     return m  
 
@@ -214,6 +214,29 @@ def pseudotime_dropdown():
         ) 
     return m 
 
+def pseudotime_gene_relative_radio():
+    m = dcc.RadioItems(
+        id="pseudotime_gene_relative_radio",
+        options=[
+            {"label": "absolute", "value": "absolute"},
+            {"label": "relative", "value": "relative"}
+        ],
+        value="absolute",
+        )
+    return m
+
+def pseudotime_gene_branch_dropdown():
+    m = dcc.Dropdown(
+        id='pseudotime_gene_branch_dropdown',
+        options=[
+        ],
+        value=None,
+        multi=False,
+        searchable=True
+        ) 
+    return m 
+
+
 def clustering_dropdown():
     m = dcc.Dropdown(
         id='clustering_dropdown',
@@ -244,3 +267,14 @@ def gene_data_table():
         html.Tr([html.Td(val) for val in data])
     ])
     return t
+
+def n_dims_proj_expression_radio():
+    m = dcc.RadioItems(
+        id="n_dims_proj_expression_radio",
+        options=[
+            {'label': '2D ', 'value': 2},
+            {'label': '3D ', 'value': 3}
+        ],
+        value=2
+        )
+    return m

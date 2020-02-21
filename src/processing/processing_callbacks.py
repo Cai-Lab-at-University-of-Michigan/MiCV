@@ -120,6 +120,15 @@ def update_n_neighbors_output(value):
     return ("n_neighbors = " + str(value))
 
 @app.callback(
+    Output('n_dims_proj_radio_output_container', 'children'),
+    [Input('n_dims_proj_radio', 'value')]
+)
+def update_n_proj_dim_output(value):
+    print("[STATUS] n_dim for projection updated to " + str(value))
+    return ("n_dim for projection = " + str(value))
+
+
+@app.callback(
     Output('clustering_resolution_slider_output_container', 'children'),
     [Input('clustering_resolution_slider', 'value')]
 )
@@ -137,6 +146,8 @@ def update_clustering_resolution_output(value):
      Input("neighbors_method_radio", "value")],
     [State("session-id", "children"),
      State("n_neighbors_slider", "value"),
+     State('n_dims_proj_radio', 'value'), #for calculations
+     State("n_dims_processing_radio", "value"), #for plot
      State("clustering_resolution_slider", "value"),
      State("min_max_genes_slider", "value"),
      State("min_cells_slider", "value"),
@@ -144,7 +155,8 @@ def update_clustering_resolution_output(value):
 )
 def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
                             clust_btn_clicks, processing_plot_type,
-                            neighborhood_method, session_ID, n_neighbors, resolution, 
+                            neighborhood_method, session_ID, n_neighbors, 
+                            n_dim_proj, n_dim_proj_plot, resolution, 
                             min_max_genes, min_cells, n_top_genes,
                             adata=None, target_sum=1e6, 
                             flavor="cell_ranger", n_comps=50, random_state=0):
@@ -174,7 +186,7 @@ def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
                                       n_neighbors=n_neighbors, 
                                       random_state=random_state,
                                       method=neighborhood_method)
-        adata = do_UMAP(session_ID, adata, random_state=random_state)
+        adata = do_UMAP(session_ID, adata, n_dim_proj, random_state=random_state)
     
     elif(button_id == "refresh_all_button"):
         print("[DEBUG] refresh_all_button clicked")
@@ -191,7 +203,7 @@ def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
         adata = do_neighborhood_graph(session_ID, adata, neighborhood_method,
                                       n_neighbors=n_neighbors, 
                                       random_state=random_state)
-        adata = do_UMAP(session_ID, adata, random_state=random_state)
+        adata = do_UMAP(session_ID, adata, n_dim_proj, random_state=random_state)
         adata = do_clustering(session_ID, adata, resolution=resolution)
         default_return[1] = "Processing successful"
 
@@ -214,17 +226,17 @@ def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
     adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
 
     if (processing_plot_type == "leiden_n"):
-        return plot_UMAP(adata, "leiden_n"), "processing successful"
+        return plot_UMAP(adata, "leiden_n", n_dim=n_dim_proj_plot), "processing successful"
     elif (processing_plot_type == "pseudotime"):
         return plot_pseudotime_UMAP(adata, "pseudotime"), "processing successful"
     elif (processing_plot_type == "differentiation potential"):
         return plot_pseudotime_UMAP(adata, "differentiation_potential"), "processing successful"
     elif (processing_plot_type == "total_counts"):
-        return plot_expression_UMAP(adata, "total_counts"), "processing successful"
+        return plot_expression_UMAP(adata, "total_counts", n_dim=n_dim_proj_plot), "processing successful"
     elif (processing_plot_type == "n_genes"):
-        return plot_expression_UMAP(adata, "n_genes"), "processing successful"
+        return plot_expression_UMAP(adata, "n_genes", n_dim=n_dim_proj_plot), "processing successful"
     elif (processing_plot_type == "log1p_total_counts"):
-        return plot_expression_UMAP(adata, "log1p_total_counts"), "processing successful"
+        return plot_expression_UMAP(adata, "log1p_total_counts", n_dim=n_dim_proj_plot), "processing successful"
 
 @app.callback(
     Output("processing_QC_plot", "figure"),
