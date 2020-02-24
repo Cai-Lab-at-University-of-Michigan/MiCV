@@ -115,7 +115,7 @@ def get_cell_intersection(session_ID, adata, list_of_selections,
 
 # returns dictionary of points that are in all violin selections
 # across all genes that could be selected on
-def get_violin_intersection(session_ID, adata, violin_selected):
+def get_violin_intersection(session_ID, violin_selected):
     if (violin_selected is None):
         return None
 
@@ -123,6 +123,11 @@ def get_violin_intersection(session_ID, adata, violin_selected):
     curves = set()
     for cell in violin_selected["points"]:
         curves.add(cell["curveNumber"])
+
+    if (len(curves) == 0):
+        print("[DEBUG] no curves selected in violin plot")
+        # no cells selected - return None
+        return None
 
     # get cells selected in each of these curves
     cells_in_curves = [set() for curve in curves]

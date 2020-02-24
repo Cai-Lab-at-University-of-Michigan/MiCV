@@ -9,7 +9,8 @@ from app import app
 #### Annotation page callbacks ####
 
 @app.callback(
-    Output("clustering_UMAP_plot", "figure"),
+    [Output("clustering_UMAP_plot", "figure"),
+     Output("total_cell_count", "value")],
     [Input("load_analysis_button", "n_clicks"),
      Input("define_cluster_button", "n_clicks"),
      Input("clustering_dropdown", "value"),
@@ -26,19 +27,23 @@ def refresh_clustering_plot(load_btn_clicks,
                             session_ID, clust_selected,  
                             adata=None, data_dir=None):
 
+    default_return = [dash.no_update, dash.no_update]
     print("[STATUS] refreshing clustering plot")
     # figure out which button was pressed - what refresh functions to call
     ctx = dash.callback_context
     if not ctx.triggered:
         button_id = "not_triggered"
-        return dash.no_update
+        return default_return
     else:
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if (clustering_plot_type in ["", 0, None, []]):
+        return default_return
 
     # Must go first - otherwise there's no adata object to load from cache
     if(button_id == "load_analysis_button"):
         if (load_btn_clicks in [None, 0]):
-            return dash.no_update
+            return default_return
         else:
             adata = cache_adata(session_ID)
 
@@ -54,11 +59,11 @@ def refresh_clustering_plot(load_btn_clicks,
             cache_gene_list(session_ID, gene_list)
 
             if (clustering_plot_type in [0, "", None, []]):
-                return dash.no_update
+                return default_return
     
     elif(button_id == "define_cluster_button"):
         if (cluster_btn_clicks in [0, None, "", []]):
-            return dash.no_update
+            return default_return
 
         adata = cache_adata(session_ID)
         clustering_group = clustering_plot_type
@@ -77,7 +82,7 @@ def refresh_clustering_plot(load_btn_clicks,
             # for violin plot selection, take the intersection of all points selected
             # i.e. if the user selected cells from multiple expression violin plots,
             # take the intersection of those cells (logical AND)
-            violin_selected = get_violin_intersection(session_ID, adata, violin_selected) 
+            violin_selected = get_violin_intersection(session_ID, violin_selected) 
             
             pt_min, pt_max = get_pseudotime_min_max(session_ID, pt_gene_selected)
 
@@ -99,7 +104,7 @@ def refresh_clustering_plot(load_btn_clicks,
         and expr_selected is None
         and violin_selected is None
         and pt_gene_selected is None):
-            return dash.no_update
+            default_return
         else:
             adata = cache_adata(session_ID, adata)
 
@@ -108,13 +113,13 @@ def refresh_clustering_plot(load_btn_clicks,
     # if it's a dropdown menu update - load adata
     elif(button_id == "clustering_dropdown"):
         if (clustering_plot_type in [0, "", None, []]):
-            return dash.no_update
+            default_return
         else:
             adata = cache_adata(session_ID)
 
         # do nothing if no buttons pressed
     elif(button_id == "not_triggered"):
-        return dash.no_update
+        default_return
 
 
     adata = cache_adata(session_ID)
@@ -125,7 +130,7 @@ def refresh_clustering_plot(load_btn_clicks,
             adata.obs[i] = ["unnassigned" for j in adata.obs.index.to_list()]
 
     # figure out which cells need to be selected, based on other graphs
-    violin_selected = get_violin_intersection(session_ID, adata, violin_selected)
+    violin_selected = get_violin_intersection(session_ID, violin_selected)
     pt_min, pt_max = get_pseudotime_min_max(session_ID, pt_gene_selected)
     selected_cell_intersection = get_cell_intersection(session_ID, adata,
                                                         [clust_selected, 
@@ -140,7 +145,23 @@ def refresh_clustering_plot(load_btn_clicks,
         selected_points = range(0, len(((adata.obs).loc[:, "cell_ID"]).index.to_list()))
     
     # update the plot
-    return plot_UMAP(adata, clustering_plot_type, selected_cell_intersection)
+    return plot_UMAP(adata, clustering_plot_type, selected_cell_intersection), len(adata.obs.index.tolist())
+
+@app.callback(
+    Output("clustering_UMAP_count", "children"),
+    [Input("clustering_UMAP_plot", "selectedData")],
+    [State("session-id", "children"),
+     State("total_cell_count", "value")]
+)
+def refresh_UMAP_clustering_count(selected_cells, session_ID, n_total_cells):
+    if (selected_cells in ["", 0, [], None]):
+        return dash.no_update
+
+    if (n_total_cells in [0, None, "", []]):
+        n_total_cells = 1
+    n_cells_selected = len(selected_cells["points"])
+    return ("# cells selected: " + str(n_cells_selected) + " | % total: "
+             + str(round(100.0 * n_cells_selected/n_total_cells, 2)))
 
 
 @app.callback(
@@ -177,6 +198,23 @@ def refresh_pseudotime_plot(pt_plot_type, session_ID, load_btn_clicks,
     print("[STATUS] updating pseudotime plot")
     return plot_pseudotime_UMAP(adata, pt_plot_type)
 
+@app.callback(
+    Output("pseudotime_UMAP_count", "children"),
+    [Input("pseudotime_UMAP_plot", "selectedData")],
+    [State("session-id", "children"),
+     State("total_cell_count", "value")]
+)
+def refresh_UMAP_pseudotime_count(selected_cells, session_ID, n_total_cells):
+    if (selected_cells in ["", 0, [], None]):
+        return dash.no_update
+    
+    if (n_total_cells in [0, None, "", []]):
+        n_total_cells = 1
+
+    n_cells_selected = len(selected_cells["points"])
+    return ("# cells selected: " + str(n_cells_selected) + " | % total: "
+             + str(round(100.0 * n_cells_selected/n_total_cells, 2)))
+
 
 @app.callback(
     Output("single_gene_dropdown", "options"),
@@ -206,12 +244,12 @@ def update_mixed_gene_dropdown(n0, session_ID):
     Output("expression_UMAP_plot", "figure"),
     [Input("single_gene_dropdown", "value"),
      Input("mixed_gene_dropdown", "value"),
-     Input("single_gene_expression_radio", "value")],
-    [State('session-id', 'children'),
-     State("n_dims_proj_radio", "value")]
+     Input("single_gene_expression_radio", "value"),
+     Input("n_dims_proj_expression_radio", "value")],
+    [State('session-id', 'children')]
 )
 def refresh_expression_UMAP_plot(selected_gene, selected_mixed_genes,
-                                 multi, session_ID, n_dims_proj):
+                                 multi, n_dims_proj, session_ID):
     
     if (multi == "standard"):
         if (selected_gene in [None, 0, []]):
@@ -227,6 +265,22 @@ def refresh_expression_UMAP_plot(selected_gene, selected_mixed_genes,
     adata = cache_adata(session_ID)
     print("[STATUS] updating expression UMAP plot")
     return plot_expression_UMAP(adata, plot_these_genes, multi, n_dim=n_dims_proj)
+
+@app.callback(
+    Output("gene_UMAP_count", "children"),
+    [Input("expression_UMAP_plot", "selectedData")],
+    [State("session-id", "children"),
+     State("total_cell_count", "value")]
+)
+def refresh_UMAP_gene_count(selected_cells, session_ID, n_total_cells):
+    if (selected_cells in ["", 0, [], None]):
+        return dash.no_update
+
+    n_cells_selected = len(selected_cells["points"])
+    return ("# cells selected: " + str(n_cells_selected) + " | % total: "
+             + str(round(100.0 * n_cells_selected/n_total_cells, 2)))
+
+
 
 
 @app.callback(
@@ -253,7 +307,12 @@ def refresh_pseudotime_gene_plot(selected_genes, relative, branch_n, session_ID)
     if (selected_genes in [None, 0, []]):
         return dash.no_update
 
+    if (branch_n in ["", 0, None, []]):
+        return dash.no_update
+
     gene_trends = cache_gene_trends(session_ID)
+    if (gene_trends in ["", 0, None, []]):
+        return dash.no_update
 
     branches = list(gene_trends.keys()) #branch names (cell_IDs of terminal cells)
 
@@ -274,6 +333,25 @@ def refresh_violin_gene_plot(selected_genes, session_ID):
     adata = cache_adata(session_ID)
 
     return plot_expression_violin(adata, selected_genes)
+
+@app.callback(
+    Output("gene_violin_count", "children"),
+    [Input("violin_gene_plot", "selectedData")],
+    [State("session-id", "children"),
+     State("total_cell_count", "value")]
+)
+def refresh_violin_gene_count(selected_cells, session_ID, n_total_cells):
+    if (selected_cells in ["", 0, [], None]):
+        return dash.no_update
+    
+    if (n_total_cells in [0, None, "", []]):
+        n_total_cells = 1
+
+    violin_selected = get_violin_intersection(session_ID, selected_cells)
+    n_cells_selected = len(violin_selected["points"])
+    return ("# cells selected: " + str(n_cells_selected) + " | % total: "
+             + str(round(100.0 * n_cells_selected/n_total_cells, 2)))
+
 
 @app.callback(
     Output('gene_data_table', 'children'),
@@ -359,3 +437,6 @@ def update_gene_data_table(selected_gene, session_ID, multi):
                 ])
             ret.append(r)
     return ret
+
+
+

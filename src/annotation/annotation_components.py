@@ -1,5 +1,6 @@
 import dash_core_components as dcc
 import dash_html_components as html
+import dash_bootstrap_components as dbc
 import plotly.graph_objs as go
 
 from plotting.plotting_parameters import scale
@@ -154,7 +155,7 @@ def plot_gene_violin():
     return g
 
 def single_gene_expression_radio():
-    m = dcc.RadioItems(
+    m = dbc.RadioItems(
         id="single_gene_expression_radio",
         options=[
             {'label': 'standard', 'value': 'standard'},
@@ -168,11 +169,11 @@ def single_gene_dropdown():
     m = dcc.Dropdown(
         id='single_gene_dropdown',
         options=[
-            {'label': 'GeneA', 'value': 'GeneA'}
         ],
         value=None,
         multi=False,
         searchable=True,
+        placeholder="Gene selection (single, log expression)"
         )  
     return m
 
@@ -180,11 +181,11 @@ def mixed_gene_dropdown():
     m = dcc.Dropdown(
         id='mixed_gene_dropdown',
         options=[
-            {'label': 'GeneA', 'value': 'GeneA'}
         ],
         value=None,
         multi=True,
         searchable=True,
+        placeholder="Gene selection (multiple, relative expression)"
         )  
     return m
 
@@ -192,11 +193,11 @@ def multi_gene_dropdown():
     m = dcc.Dropdown(
         id='multi_gene_dropdown',
         options=[
-            {'label': 'GeneA', 'value': 'GeneA'}
         ],
         value=[],
         multi=True,
-        searchable=True
+        searchable=True,
+        placeholder="Gene selection (multiple)"
         ) 
     return m 
 
@@ -215,7 +216,7 @@ def pseudotime_dropdown():
     return m 
 
 def pseudotime_gene_relative_radio():
-    m = dcc.RadioItems(
+    m = dbc.RadioItems(
         id="pseudotime_gene_relative_radio",
         options=[
             {"label": "absolute", "value": "absolute"},
@@ -232,7 +233,8 @@ def pseudotime_gene_branch_dropdown():
         ],
         value=None,
         multi=False,
-        searchable=True
+        searchable=True,
+        placeholder="Branch number"
         ) 
     return m 
 
@@ -269,12 +271,38 @@ def gene_data_table():
     return t
 
 def n_dims_proj_expression_radio():
-    m = dcc.RadioItems(
+    m = dbc.RadioItems(
         id="n_dims_proj_expression_radio",
         options=[
             {'label': '2D ', 'value': 2},
             {'label': '3D ', 'value': 3}
         ],
-        value=2
+        value=2,
+        inline=True
         )
+    return m
+
+def gene_violin_count():
+    m = dbc.Badge(id="gene_violin_count", children=["# cells selected: 0"],
+                  className="ml-1")
+    return m
+
+def gene_UMAP_count():
+    m = dbc.Badge(id="gene_UMAP_count", children=["# cells selected: 0"],
+                  className="ml-1")
+    return m
+
+def pseudotime_UMAP_count():
+    m = dbc.Badge(id="pseudotime_UMAP_count", children=["# cells selected: 0"],
+                  className="ml-1")
+    return m
+
+def clustering_UMAP_count():
+    m = dbc.Badge(id="clustering_UMAP_count", children=["# cells selected: 0"],
+                  className="ml-1")
+    return m
+
+def total_cell_count():
+    m = html.Div(id="total_cell_count", children=[0],
+                 style={"display": "none"})
     return m

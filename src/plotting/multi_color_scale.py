@@ -24,7 +24,7 @@ class MultiColorScale():
 	        for j in interp:
 	            for k in interp:
 	                x = str((i+j+k) / (3.0*self.m))
-	                s[x] = Color(rgb=(i**self.gamma,j**self.gamma,k**self.gamma)).hex_l
+	                s[x] = Color(rgb=(1 - i**self.gamma, 1 - j**self.gamma, 1 - k**self.gamma)).hex_l
 	    return s
 
 	# provides value for each color hex key
@@ -52,7 +52,7 @@ class MultiColorScale():
 	def calculate_hex_color(self, RGB_color):
 		if (len(RGB_color) == 3):
 			r,g,b = RGB_color
-			hex_color = Color(rgb=(r**self.gamma,g**self.gamma,b**self.gamma)).hex_l
+			hex_color = Color(rgb=(1 - r**self.gamma, 1 - g**self.gamma, 1 - b**self.gamma)).hex_l
 			return hex_color
 		else:
 			print("[ERROR] RGB color is not len==3")

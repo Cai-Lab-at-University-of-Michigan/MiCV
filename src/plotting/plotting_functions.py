@@ -25,12 +25,9 @@ def plot_UMAP(adata, clustering_plot_type, selected_cell_intersection=[], n_dim=
 
     # validate that there is a 3D projection available if that was requested
     if (n_dim == 3):
-        real_n_dim = np.shape(adata.obsm["X_umap"])[1]
-        if (real_n_dim == 3):
-            n_dim = 3
-        else:
+        if not ("X_umap_3D" in adata.obsm):
             n_dim = 2
-
+    
     traces = []
     for i,val in enumerate(sorted(adata.obs[clustering_plot_type].unique())):
         a = adata[adata.obs[clustering_plot_type] == val]
@@ -68,13 +65,13 @@ def plot_UMAP(adata, clustering_plot_type, selected_cell_intersection=[], n_dim=
         elif (n_dim == 3):
             traces.append(
                 go.Scatter3d(
-                    x=a.obsm["X_umap"][:,0],
-                    y=a.obsm["X_umap"][:,1],
-                    z=a.obsm["X_umap"][:,2],
+                    x=a.obsm["X_umap_3D"][:,0],
+                    y=a.obsm["X_umap_3D"][:,1],
+                    z=a.obsm["X_umap_3D"][:,2],
                     text="Cell ID: " + a.obs["cell_ID"],
                     mode='markers',
                     marker={
-                        'size': 2,
+                        'size': 2.5,
                         'line': {'width': 1, 'color': 'grey'},
                         "color": discrete_colors_3[i%len(discrete_colors_3)]
                     },
@@ -164,11 +161,8 @@ def plot_expression_UMAP(adata, selected_genes, multi="standard", n_dim=2):
     
     # validate that there is a 3D projection available if that was requested
     if (n_dim == 3):
-        real_n_dim = np.shape(adata.obsm["X_umap"])[1]
-        if (real_n_dim == 3):
-            n_dim = 3
-        else:
-            n_dim = 2    
+        if not ("X_umap_3D" in adata.obsm):
+            n_dim = 2
 
     if (multi == "standard"):
         colorscale = "viridis"
@@ -205,13 +199,13 @@ def plot_expression_UMAP(adata, selected_genes, multi="standard", n_dim=2):
         elif (n_dim == 3):
             traces.append(
                 go.Scatter3d(
-                    x=adata.obsm["X_umap"][:,0],
-                    y=adata.obsm["X_umap"][:,1],
-                    z=adata.obsm["X_umap"][:,2],
+                    x=adata.obsm["X_umap_3D"][:,0],
+                    y=adata.obsm["X_umap_3D"][:,1],
+                    z=adata.obsm["X_umap_3D"][:,2],
                     text="Cell ID: " + adata.obs["cell_ID"],
                     mode='markers',
                     marker={
-                        'size': 2,
+                        'size': 2.5,
                         'line': {'width': 1, 'color': 'grey'},
                         "color": adata.obs_vector(selected_gene),
                         "colorscale": colorscale,
@@ -254,13 +248,13 @@ def plot_expression_UMAP(adata, selected_genes, multi="standard", n_dim=2):
         elif (n_dim == 3):
             traces.append(
                 go.Scatter3d(
-                    x=adata.obsm["X_umap"][:,0],
-                    y=adata.obsm["X_umap"][:,1],
-                    z=adata.obsm["X_umap"][:,2],
+                    x=adata.obsm["X_umap_3D"][:,0],
+                    y=adata.obsm["X_umap_3D"][:,1],
+                    z=adata.obsm["X_umap_3D"][:,2],
                     text="Cell ID: " + adata.obs["cell_ID"],
                     mode='markers',
                     marker={
-                        'size': 2,
+                        'size': 2.5,
                         'line': {'width': 1, 'color': 'grey'},
                         "color": color_values,
                     },
@@ -299,6 +293,7 @@ def plot_expression_UMAP(adata, selected_genes, multi="standard", n_dim=2):
 
 def plot_expression_trend(gene_trends, selected_genes, selected_branch, 
                           relative="absolute"):
+
     traces = []
     trends = gene_trends[selected_branch]["trends"]
     stds = gene_trends[selected_branch]["std"] * 25

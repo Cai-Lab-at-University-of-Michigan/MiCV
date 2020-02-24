@@ -58,7 +58,7 @@ def do_neighborhood_graph(session_ID, adata, method="standard",
     if ((method == "standard") or (not ("batch" in adata.obs))):
         sc.pp.neighbors(adata, n_neighbors=n_neighbors, random_state=random_state)
     elif (method == "bbknn"):
-        sc.external.pp.bbknn(adata, n_neighbors=n_neighbors, batch_key="batch")
+        sc.external.pp.bbknn(adata, batch_key="batch")
 
     new_adata = adata.copy()
 
@@ -67,12 +67,15 @@ def do_neighborhood_graph(session_ID, adata, method="standard",
 
 def do_UMAP(session_ID, adata, n_dim_proj=2, random_state=0):
     print("[STATUS] doing a UMAP projection")
-    new_adata = sc.tl.umap(adata, random_state=random_state, 
-                           init_pos="spectral", n_components=n_dim_proj, 
+    sc.tl.umap(adata, random_state=random_state, 
+                           init_pos="spectral", n_components=2, 
+                           copy=False)
+    adata_3D = sc.tl.umap(adata, random_state=random_state, 
+                           init_pos="spectral", n_components=3, 
                            copy=True)
-
-    cache_adata(session_ID, new_adata)
-    return new_adata
+    adata.obsm["X_umap_3D"] = adata_3D.obsm["X_umap"]
+    cache_adata(session_ID, adata)
+    return adata
 
 def do_clustering(session_ID, adata, resolution=0.5,
                   random_state=0, copy=True):

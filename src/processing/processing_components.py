@@ -1,4 +1,5 @@
 import dash_core_components as dcc
+import dash_bootstrap_components as dbc
 import plotly.graph_objs as go
 
 import pandas as pd
@@ -87,7 +88,7 @@ def processing_QC_dropdown():
     return m
 
 def neighbors_method_radio():
-    m = dcc.RadioItems(
+    m = dbc.RadioItems(
         id="neighbors_method_radio",
         options=[
             {'label': 'standard', 'value': 'standard'},
@@ -98,7 +99,7 @@ def neighbors_method_radio():
     return m
 
 def n_dims_proj_radio():
-    m = dcc.RadioItems(
+    m = dbc.RadioItems(
         id="n_dims_proj_radio",
         options=[
             {'label': '2D ', 'value': 2},
@@ -109,7 +110,7 @@ def n_dims_proj_radio():
     return m
 
 def n_dims_processing_radio():
-    m = dcc.RadioItems(
+    m = dbc.RadioItems(
         id="n_dims_processing_radio",
         options=[
             {'label': '2D ', 'value': 2},

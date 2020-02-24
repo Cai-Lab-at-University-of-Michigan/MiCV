@@ -173,18 +173,6 @@ def processing_layout():
 								], style={'marginBottom': 20, 'marginTop': 20}
 							),
 							cc.neighbors_method_radio(),
-							html.Div(id='n_dims_proj_radio_output_container',
-						    		 style={'margin-top': 20}),
-							cc.n_dims_proj_radio(),
-							html.Div([
-							    html.P('''
-							    	How many dimensions for the UMAP projection - choose
-							    	3 if you'd like to have the ability to do 
-							    	3D projections, at the expense of having slightly 
-							    	compressed 2D projections.
-									''')
-								], style={'marginBottom': 20, 'marginTop': 20}
-							),
 							dbc.Button("Recalculate (only) projection", 
 					    				id="refresh_projection_button"),
 						], id="projection-collapse"),

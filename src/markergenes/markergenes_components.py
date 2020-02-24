@@ -1,5 +1,6 @@
 import dash_core_components as dcc
 import dash_html_components as html
+import dash_bootstrap_components as dbc
 import plotly.graph_objs as go
 
 from plotting.plotting_parameters import scale
@@ -60,7 +61,7 @@ def marker_gene_group_dropdown():
     return m 
 
 def marker_gene_method_radio():
-    m = dcc.RadioItems(
+    m = dbc.RadioItems(
         id="marker_gene_method_radio",
         options=[
             {'label': 'logreg', 'value': 'logreg'},
@@ -81,7 +82,7 @@ def marker_gene_plot():
     return m
 
 def n_dims_proj_markergenes_radio():
-    m = dcc.RadioItems(
+    m = dbc.RadioItems(
         id="n_dims_proj_markergenes_radio",
         options=[
             {'label': '2D ', 'value': 2},
