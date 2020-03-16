@@ -15,10 +15,8 @@ import base64
 from helper_functions import *
 from plotting.multi_color_scale import MultiColorScale
 from plotting.discrete_color_scales import *
-from plotting.plotting_parameters import scale
+from plotting.plotting_parameters import *
 
-min_opacity = 0.2
-max_opacity = 0.9
 
 def plot_UMAP(adata, clustering_plot_type, selected_cell_intersection=[], n_dim=2):
     print("[DEBUG] generating new UMAP plot")
@@ -47,8 +45,8 @@ def plot_UMAP(adata, clustering_plot_type, selected_cell_intersection=[], n_dim=
                     mode='markers',
                     selectedpoints=s,
                     marker={
-                        'size': 10,
-                        'line': {'width': 1, 'color': 'grey'},
+                        'size': point_size_2d,
+                        'line': {'width': point_line_width_2d, 'color': 'grey'},
                         "color": discrete_colors_3[i%len(discrete_colors_3)]
                     },
                     unselected={
@@ -71,8 +69,8 @@ def plot_UMAP(adata, clustering_plot_type, selected_cell_intersection=[], n_dim=
                     text="Cell ID: " + a.obs["cell_ID"],
                     mode='markers',
                     marker={
-                        'size': 2.5,
-                        'line': {'width': 1, 'color': 'grey'},
+                        'size': point_size_3d,
+                        'line': {'width': point_line_width_3d, 'color': 'grey'},
                         "color": discrete_colors_3[i%len(discrete_colors_3)]
                     },
                     name=("Cluster " + str(val))
@@ -84,12 +82,13 @@ def plot_UMAP(adata, clustering_plot_type, selected_cell_intersection=[], n_dim=
             'layout': dict(
                 xaxis={"title": "UMAP 1"},
                 yaxis={"title": "UMAP 2"},
-                margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                margin=margin,
                 legend={'x': 0, 'y': 1},
                 hovermode='closest',
                 transition = {'duration': 250},
-                width=4 * scale,
-                height=3 * scale
+                autosize=True
+                #width=4 * scale,
+                #height=3 * scale
             )
         }
     elif (n_dim == 3):
@@ -99,12 +98,13 @@ def plot_UMAP(adata, clustering_plot_type, selected_cell_intersection=[], n_dim=
                 xaxis={"title": "UMAP 1"},
                 yaxis={"title": "UMAP 2"},
                 zaxis={"title": "UMAP 3"},
-                margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                margin=margin,
                 legend={'x': 0, 'y': 1},
                 hovermode='closest',
                 transition = {'duration': 250},
-                width=4 * scale,
-                height=3 * scale
+                autosize=True
+                #width=4 * scale,
+                #height=3 * scale
             )
         }
 
@@ -123,8 +123,8 @@ def plot_pseudotime_UMAP(adata, pt_plot_type):
             text="Cell ID: " + adata.obs["cell_ID"],
             mode='markers',
             marker={
-                'size': 10,
-                'line': {'width': 1, 'color': 'grey'},
+                'size': point_size_2d,
+                'line': {'width': point_line_width_2d, 'color': 'grey'},
                 "color": adata.obs[str(pt_plot_type)],
                 "colorscale": "plasma",
                 "cmin": 0,
@@ -148,16 +148,18 @@ def plot_pseudotime_UMAP(adata, pt_plot_type):
         'layout': dict(
             xaxis={"title": "UMAP 1"},
             yaxis={"title": "UMAP 2"},
-            margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+            margin=margin,
             legend={'x': 0, 'y': 1},
             hovermode='closest',
             transition = {'duration': 250},
-            width=4 * scale,
-            height=3 * scale
+            autosize=True
+            #width=4 * scale,
+            #height=3 * scale
         )
     }
 
-def plot_expression_UMAP(adata, selected_genes, multi="standard", n_dim=2):
+def plot_expression_UMAP(adata, selected_genes, multi="standard", n_dim=2,
+                         session_ID=None):
     
     # validate that there is a 3D projection available if that was requested
     if (n_dim == 3):
@@ -176,8 +178,8 @@ def plot_expression_UMAP(adata, selected_genes, multi="standard", n_dim=2):
                     text="Cell ID: " + adata.obs["cell_ID"],
                     mode='markers',
                     marker={
-                        'size': 10,
-                        'line': {'width': 1, 'color': 'grey'},
+                        'size': point_size_2d,
+                        'line': {'width': point_line_width_2d, 'color': 'grey'},
                         "color": adata.obs_vector(selected_gene),
                         "colorscale": colorscale,
                         "cmin": 0,
@@ -205,8 +207,8 @@ def plot_expression_UMAP(adata, selected_genes, multi="standard", n_dim=2):
                     text="Cell ID: " + adata.obs["cell_ID"],
                     mode='markers',
                     marker={
-                        'size': 2.5,
-                        'line': {'width': 1, 'color': 'grey'},
+                        'size': point_size_3d,
+                        'line': {'width': point_line_width_3d, 'color': 'grey'},
                         "color": adata.obs_vector(selected_gene),
                         "colorscale": colorscale,
                         "cmin": 0,
@@ -231,8 +233,8 @@ def plot_expression_UMAP(adata, selected_genes, multi="standard", n_dim=2):
                     text="Cell ID: " + adata.obs["cell_ID"],
                     mode='markers',
                     marker={
-                        'size': 10,
-                        'line': {'width': 1, 'color': 'grey'},
+                        'size': point_size_2d,
+                        'line': {'width': point_line_width_2d, 'color': 'grey'},
                         "color": color_values,
                     },
                     unselected={
@@ -254,8 +256,8 @@ def plot_expression_UMAP(adata, selected_genes, multi="standard", n_dim=2):
                     text="Cell ID: " + adata.obs["cell_ID"],
                     mode='markers',
                     marker={
-                        'size': 2.5,
-                        'line': {'width': 1, 'color': 'grey'},
+                        'size': point_size_3d,
+                        'line': {'width': point_line_width_3d, 'color': 'grey'},
                         "color": color_values,
                     },
                 )
@@ -267,12 +269,13 @@ def plot_expression_UMAP(adata, selected_genes, multi="standard", n_dim=2):
             'layout': dict(
                 xaxis={"title": "UMAP 1"},
                 yaxis={"title": "UMAP 2"},
-                margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                margin=margin,
                 legend={'x': 0, 'y': 1},
                 hovermode='closest',
                 transition = {'duration': 250},
-                width=4 * scale,
-                height=3 * scale
+                autosize=True
+                #width=4 * scale,
+                #height=3 * scale
             )
         }
     elif (n_dim == 3):
@@ -282,12 +285,13 @@ def plot_expression_UMAP(adata, selected_genes, multi="standard", n_dim=2):
                 xaxis={"title": "UMAP 1"},
                 yaxis={"title": "UMAP 2"},
                 zaxis={"title": "UMAP 3"},
-                margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                margin=margin,
                 legend={'x': 0, 'y': 1},
                 hovermode='closest',
                 transition = {'duration': 250},
-                width=4 * scale,
-                height=3 * scale
+                autosize=True
+                #width=4 * scale,
+                #height=3 * scale
             )
         }
 
@@ -336,16 +340,17 @@ def plot_expression_trend(gene_trends, selected_genes, selected_branch,
         'layout': dict(
             xaxis={"title": "Pseudotime"},
             yaxis={"title": "Expression"},
-            margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+            margin=margin,
             legend={'x': 0, 'y': 1},
             hovermode='closest',
             transition = {'duration': 100},
-            width=4 * scale,
-            height=3 * scale
+            autosize=True
+            #width=4 * scale,
+            #height=3 * scale
         )
     }
 
-def plot_expression_violin(adata, selected_genes):
+def plot_expression_violin(adata, selected_genes, show_points = "all"):
     traces = []
     for i in selected_genes:
         if not ((i in adata.var.index) or (i in adata.obs)):
@@ -359,7 +364,7 @@ def plot_expression_violin(adata, selected_genes):
                 opacity=0.7,
                 box_visible=True,
                 meanline_visible=True,
-                points="all",
+                points=show_points,
                 name=(str(i))
             )
         )
@@ -373,12 +378,13 @@ def plot_expression_violin(adata, selected_genes):
         'layout': dict(
             xaxis={"title": "Gene/factor"},
             yaxis={"title": "Expression"},
-            margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+            margin=margin,
             legend={'x': 0, 'y': 1},
             hovermode='closest',
             transition = {'duration': 100},
-            width=4 * scale,
-            height=3 * scale
+            autosize=True
+            #width=4 * scale,
+            #height=3 * scale
         )
     }
 
@@ -398,9 +404,10 @@ def plot_marker_genes(adata, obs_column, groups_to_rank):
 			                                 dendrogram=False, groupby=obs_column, show=False,
 			                                 save=".png")
     encoded_image = base64.b64encode(open(save_analysis_path + image_filename, 'rb').read())
-    return html.Img(src='data:image/png;base64,{}'.format(encoded_image.decode()))
+    return html.Img(src='data:image/png;base64,{}'.format(encoded_image.decode()),
+                    width=1000)
 
-def get_mixed_expression_value(e0, e1=None, e2=None):
+def get_mixed_expression_value(e0, e1=None, e2=None, session_ID=None):
     m = 1
     n_levels = 16
 
@@ -421,11 +428,11 @@ def get_mixed_expression_value(e0, e1=None, e2=None):
         e2 = rescale_expression(e2, m)
 
     colors = np.column_stack((e0,e1,e2))
-    print("[DEBUG] colors: " + str(colors[0:5]))
+    #print("[DEBUG] colors: " + str(colors[0:5]))
 
         
     bins = np.linspace(0, m, n_levels)
-    scale = cache_multicolor_scale()
+    scale = cache_multicolor_scale(session_ID)
 
     inds = np.digitize(colors, bins, right=True)
     for i in range(0, len(colors)):

@@ -32,12 +32,16 @@ def refresh_pseudotime_UMAP(pt_btn_clicks, pt_plot_type, session_ID,
         if (pt_btn_clicks in [None, 0]):
             return default_return
         
+        adata = cache_adata(session_ID)
+        if (adata is None):
+            return default_return
+
         # get the starter cell from the pseudotime plot and redo the pseudotime based on that
         # if there are multiple selected, take the last one
         if not (selected_cells is None):
-            adata = cache_adata(session_ID)
+
             pt_selected_cell_IDs = get_cell_intersection(session_ID, adata, [selected_cells])
-        
+                
         if ((pt_selected_cell_IDs is None) or (len(pt_selected_cell_IDs) != 1)):
             print("[ERROR] please select exactly 1 cell to use as a pseudotime starter cell"
                 + "\nUsing first cell in set")
@@ -56,9 +60,12 @@ def refresh_pseudotime_UMAP(pt_btn_clicks, pt_plot_type, session_ID,
     elif(button_id == "not_triggered"):
         return default_return
     
+    if (adata is None):
+        return default_return
+
     # update the plot
     if (pt_plot_type in [0, "", None, []]):
-        return dash.no_update
+        return default_return
     print("[STATUS] updating plot by: " + str(pt_plot_type))
     adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
 
@@ -72,7 +79,7 @@ def refresh_pseudotime_UMAP(pt_btn_clicks, pt_plot_type, session_ID,
     else:
         cells_to_highlight = []
     if (pt_plot_type == "leiden_n"):
-        return plot_UMAP(adata, "leiden_n", cells_to_highlight), pt_calc_status
+        return plot_UMAP(adata, "leiden", cells_to_highlight), pt_calc_status
     elif (pt_plot_type == "pseudotime"):
         return plot_pseudotime_UMAP(adata, "pseudotime"), pt_calc_status
     elif (pt_plot_type == "differentiation potential"):
@@ -106,6 +113,9 @@ def update_pseudotime_dropdown(pt_calc_status, session_ID, pt_calc_dropdown_opti
         return default_return
 
     adata = cache_adata(session_ID)
+    if (adata is None):
+        return default_return
+
     pt_branch_names = [col for col in adata.obs.columns if 'pseudotime_branch_' in col]
     value_list = ["pseudotime", "differentiation_potential"] + pt_branch_names
     options_0 = [{"label": i, "value": i} for i in value_list]

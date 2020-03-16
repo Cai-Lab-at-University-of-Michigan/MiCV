@@ -43,11 +43,12 @@ def do_pseudotime(session_ID, adata, starter_cell_ID=None):
                    axis=1, inplace=True)
     for i, branch in enumerate(pr_res.branch_probs.columns):
         adata.obs["pseudotime_branch_" + str(i)] = pr_res.branch_probs.loc[tsne.index, branch]
-    genes = adata.var.index.tolist()
+    genes = adata.var[adata.var["highly_variable"]].index.tolist()
 
     print("[STATUS] computing all gene trends (this will take a while)")
     gene_trends = palantir.presults.compute_gene_trends(pr_res, 
-                                                        imp_df.loc[:, genes])
+                                                        imp_df.loc[:, genes],
+                                                        n_jobs=1)
 
     cache_adata(session_ID, adata)
     cache_gene_trends(session_ID, gene_trends)

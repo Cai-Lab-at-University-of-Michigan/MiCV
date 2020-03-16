@@ -42,8 +42,9 @@ def toggle_procssing_accordion(n1, n2, n3, n4, is_open1, is_open2, is_open3, is_
     [State('upload_raw_data', 'filename'),
      State('session-id', 'children')])
 def parse_uploaded_data(contents, filename, session_ID):
+    default_return = dash.no_update
     if (filename is None):
-        return dash.no_update
+        return default_return
 
     print("[STATUS] parsing data upload")
     
@@ -51,12 +52,15 @@ def parse_uploaded_data(contents, filename, session_ID):
 
     if (".h5ad" in filename):
         decoded = base64.b64decode(content_string)
-        with open(save_analysis_path + "adata_cache.h5ad", "wb") as f:
+        save_dir = save_analysis_path + "/" + str(session_ID) + "/"
+        if not (os.path.isdir(save_dir)):
+            os.makedirs(save_dir)
+        with open(save_dir + "adata_cache.h5ad", "wb") as f:
             f.write(decoded)
         adata = cache_adata(session_ID)
         adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
+        adata.var_names_make_unique()
         cache_adata(session_ID, adata)
-        
         gene_list = adata.var.index.tolist()
         gene_list = [str(x) for x in gene_list]
         gene_list = list(sorted(gene_list, key=str.lower))
@@ -65,16 +69,19 @@ def parse_uploaded_data(contents, filename, session_ID):
         return "Anndata object uploaded successfully"
 
     if (".zip" in filename):
-        save_dir = save_analysis_path + "raw_data/"
+        save_dir = save_analysis_path + "/" + str(session_ID) + "/raw_data/"
         if not (os.path.isdir(save_dir)):
-            os.mkdir(save_dir)
+            os.makedirs(save_dir)
 
         decoded = base64.b64decode(content_string)
         data = zf.ZipFile(io.BytesIO(decoded), mode="r")
         data.extractall(path=save_dir)
 
         adata = generate_adata_from_10X(session_ID)
+        if (adata is None):
+            return default_return
         adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
+        adata.var_names_make_unique()
         cache_adata(session_ID, adata)
 
         gene_list = adata.var.index.tolist()
@@ -86,6 +93,44 @@ def parse_uploaded_data(contents, filename, session_ID):
 
     return "Uploaded file not recognized. Upload an anndata object in h5ad format or zipped 10X ouput data."
 
+@app.callback(
+    Output('load_selected_dataset_success_output', 'children'),
+    [Input('processing_load_dataset_button', 'n_clicks')],
+    [State('processing_dataset_dropdown', 'value'),
+     State('session-id', 'children')])
+def parse_selected_dataset(btn_clicks, dataset_key, session_ID):
+    default_return = ""
+    print("[STATUS] loading selected dataset")
+    # figure out which button was pressed - what refresh functions to call
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        button_id = "not_triggered"
+        return default_return
+    else:
+        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+
+    if  (button_id == "processing_load_dataset_button"):
+        if (btn_clicks in [None, 0]):
+            return default_return
+
+    if (dataset_key in [0, "", None, []]):
+        return default_return
+
+    adata = load_selected_dataset(session_ID, dataset_key)
+    if (adata is None):
+        print("[ERROR] selected dataset not found; key: " + str(dataset_key))
+        return default_return
+    else:
+        adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
+        cache_adata(session_ID, adata)
+        if (adata is None):
+            return default_return
+        gene_list = adata.var.index.tolist()
+        gene_list = [str(x) for x in gene_list]
+        gene_list = list(sorted(gene_list, key=str.lower))
+        cache_gene_list(session_ID, gene_list)
+        return "Dataset loaded"
 
 @app.callback(
     Output('min_max_genes_slider_output_container', 'children'),
@@ -167,12 +212,20 @@ def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
         if (clust_btn_clicks in [None, 0]):
             return default_return
         adata = cache_adata(session_ID)
+        if (adata is None):
+            return default_return
         adata = do_clustering(session_ID, adata, resolution=resolution)
     
     elif(button_id == "refresh_projection_button"):
         if (proj_btn_clicks in [None, 0]):
             return default_return
-        adata = cache_adata(session_ID)   
+        
+        adata = cache_adata(session_ID)
+        if (adata is None):
+            return default_return
+        
+        adata, = do_PCA(session_ID, adata, n_comps=n_comps, 
+                        random_state=random_state),   
         adata = do_neighborhood_graph(session_ID, adata, 
                                       n_neighbors=n_neighbors, 
                                       random_state=random_state,
@@ -183,8 +236,11 @@ def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
         print("[DEBUG] refresh_all_button clicked")
         if (all_btn_clicks in [None, 0]):
             return default_return
+        adata = cache_adata(session_ID)
+        if (adata is None):
+            return default_return
         print("[STATUS] refreshing everything")   
-        adata = preprocess_data(session_ID, min_cells=min_cells,
+        adata = preprocess_data(session_ID, adata, min_cells=min_cells,
                                 min_genes=min_max_genes[0], 
                                 max_genes=min_max_genes[1], 
                                 target_sum=target_sum, flavor=flavor, 
@@ -205,6 +261,8 @@ def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
             return default_return
         else:
             adata = cache_adata(session_ID)
+            if (adata is None):
+                return default_return
 
     # do nothing if no buttons pressed
     elif(button_id == "not_triggered"):
@@ -218,7 +276,7 @@ def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
     adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
 
     if (processing_plot_type == "leiden_n"):
-        return plot_UMAP(adata, "leiden_n", n_dim=n_dim_proj_plot), "processing successful"
+        return plot_UMAP(adata, "leiden", n_dim=n_dim_proj_plot), "processing successful"
     elif (processing_plot_type == "pseudotime"):
         return plot_pseudotime_UMAP(adata, "pseudotime"), "processing successful"
     elif (processing_plot_type == "differentiation potential"):
@@ -236,12 +294,15 @@ def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
     [State('session-id', 'children')]
 )
 def refresh_violin_QC_plot(selected_QC, session_ID):
+    default_return = dash.no_update
     if (selected_QC in [None, 0, []]):
-        return dash.no_update
+        return default_return
 
     print("[STATUS] updating violin gene plot")
     adata = cache_adata(session_ID)
+    if (adata is None):
+        return default_return
 
     # plot function expects list of factors/genes, but for QC
     # we will only show one at a time here - list is required though
-    return plot_expression_violin(adata, [selected_QC])
+    return plot_expression_violin(adata, [selected_QC], show_points = False)

@@ -18,7 +18,7 @@ class MultiColorScale():
 	def generate_scale_dict(self, n_levels):
 	    x = 0
 	    interp = np.linspace(0, self.m, n_levels)
-	    print("[DEBUG] interp: " + str(interp))
+	    #print("[DEBUG] interp: " + str(interp))
 	    s = {}
 	    for i in interp:
 	        for j in interp:

@@ -1,5 +1,10 @@
-from os import path
+import os
+import shutil
+import time
 import pickle
+
+from filelock import Timeout, FileLock
+
 import pandas as pd
 import scanpy as sc
 import anndata as ad
@@ -8,11 +13,10 @@ import numpy as np
 from plotting.multi_color_scale import MultiColorScale
 
 save_analysis_path = "/srv/www/MiCV/cache/"
-
+selected_datasets_path = "/srv/www/MiCV/selected_datasets/"
 
 def generate_adata_from_10X(session_ID, data_type="10X_mtx"):
-    #data_dir = "/home/nigelmic/bioinformatics/Solo.out"
-    data_dir = save_analysis_path + "/" + "raw_data"
+    data_dir = save_analysis_path + str(session_ID) + "/raw_data/"
     print("[STATUS] loading data from " + str(data_dir))
     if (data_type == "10X_mtx"):
         adata = sc.read_10x_mtx(data_dir, cache=False)
@@ -22,71 +26,98 @@ def generate_adata_from_10X(session_ID, data_type="10X_mtx"):
         print("[ERROR] data type not recognized - returning None")
         return None
 
-
     cache_adata(session_ID, adata)
+    return adata
+
+def load_selected_dataset(session_ID, dataset_key):
+    dataset_dict = {
+    "00002": selected_datasets_path + "Cocanougher2020",
+    "00003": selected_datasets_path + "Davie2018",
+    "00004": selected_datasets_path + "10X5KPBMC",
+    "00005": selected_datasets_path + "Sharma2020",
+    "00006": selected_datasets_path + "Zeisel2018"
+    }
+
+    filename = dataset_dict[dataset_key]
+    if (filename is None):
+        return None
+
+    adata = sc.read_h5ad(filename + ".h5ad")
     return adata
 
 def cache_adata(session_ID, adata=None):
     #filename = save_analysis_path  + "adata_cache.h5ad"
-    filename = save_analysis_path  + "adata_cache"
-    #print("[DEBUG] filename = " + str(filename))
-    if (adata is None):
-        if (path.isfile(filename  + ".h5ad") is True):
-            adata = sc.read_h5ad(filename + ".h5ad")
+    save_dir = save_analysis_path  + str(session_ID) + "/"
+    if not (os.path.isdir(save_dir)):
+        os.mkdir(save_dir)
+    
+    filename = save_dir + "adata_cache"
+    lock_filename = save_dir + "adata.lock"
+    lock = FileLock(lock_filename, timeout=20)
+    
+    with lock:
+        print("[DEBUG] filename = " + str(filename))
+        if (adata is None):
+            if (os.path.isfile(filename  + ".h5ad") is True):
+                adata = sc.read_h5ad(filename + ".h5ad")
 
-        if not (adata is None):
-            if not ("leiden_n" in adata.obs):
-                if ("leiden" in adata.obs):
-                    adata.obs["leiden_n"] = pd.to_numeric(adata.obs["leiden"])
-            if not ("cell_ID" in adata.obs):
-                adata.obs["cell_ID"] = adata.obs.index
-            if not ("cell_ID" in adata.obs):
-                adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
-            adata.write(filename + ".h5ad")
-            #adata.write_zarr(filename + ".zarr", (1000,1000))
-            adata.filename = None
-            #return ad.AnnData(X = adata.X, var=adata.var, obs=adata.obs, uns=adata.uns, obsm=adata.obsm, varm=adata.varm, raw=adata.raw)
-            return adata
+            if not (adata is None):
+                if not ("leiden_n" in adata.obs):
+                    if ("leiden" in adata.obs):
+                        adata.obs["leiden_n"] = pd.to_numeric(adata.obs["leiden"])
+                if not ("cell_ID" in adata.obs):
+                    adata.obs["cell_ID"] = adata.obs.index
+                if not ("cell_ID" in adata.obs):
+                    adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
+                adata.write(filename + ".h5ad")
+                return adata
+            else:
+                print("[ERROR] adata object not saved at: " + str(filename))
+                return None
         else:
-            print("[ERROR] adata object not saved at: " + str(filename))
-            return None
-    else:
-        adata.write(filename + ".h5ad")
-        #adata.write_zarr(filename + ".zarr", (1000,1000))
-        adata.filename = None
-        #return ad.AnnData(X = adata.X, var=adata.var, obs=adata.obs, uns=adata.uns, obsm=adata.obsm, varm=adata.varm, raw=adata.raw)
-        return adata
+            adata.write(filename + ".h5ad")
+            return adata
 
 def cache_gene_trends(session_ID, gene_trends=None):
-    filename = save_analysis_path + "gene_trends_cache.pickle"
-    if (gene_trends is None):
-        if (path.isfile(filename) is True):
-            with open(filename, "rb") as f:
-                gene_trends = pickle.load(f)
+    filename = save_analysis_path + str(session_ID) + "/gene_trends_cache.pickle"
+    lock_filename = filename + ".lock"
+    lock = FileLock(lock_filename, timeout=20)
+    
+    with lock:
+        print("[DEBUG] filename = " + str(filename))    
+        if (gene_trends is None):
+            if (os.path.isfile(filename) is True):
+                with open(filename, "rb") as f:
+                    gene_trends = pickle.load(f)
+            else:
+                print("[ERROR] gene trends cache does not exist at: " + str(filename))
+                gene_trends = []
+            return gene_trends
         else:
-            print("[ERROR] gene trends cache does not exist at: " + str(filename))
-            gene_trends = ["NULL"]
-        return gene_trends
-    else:
-        with open(filename, "wb") as f:
-            pickle.dump(gene_trends, f)
-        return gene_trends
+            with open(filename, "wb") as f:
+                pickle.dump(gene_trends, f)
+            return gene_trends
 
 def cache_gene_list(session_ID, gene_list=None):
-    filename = save_analysis_path + "gene_list_cache.pickle"
-    if (gene_list is None):
-        if (path.isfile(filename) is True):
-            with open(filename, "rb") as f:
-                gene_list = pickle.load(f)
+    filename = save_analysis_path + str(session_ID) + "/gene_list_cache.pickle"
+    lock_filename = filename + ".lock"
+    lock = FileLock(lock_filename, timeout=20)
+    
+    with lock:
+        print("[DEBUG] filename = " + str(filename))
+        if (gene_list is None):
+            if (os.path.isfile(filename) is True):
+                with open(filename, "rb") as f:
+                    gene_list = pickle.load(f)
+            else:
+                print("[ERROR] gene list cache does not exist at: " + str(filename))
+                gene_list = None
+            return gene_list
         else:
-            print("[ERROR] gene list cache does not exist at: " + str(filename))
-            gene_list = ["NULL"]
-        return gene_list
-    else:
-        gene_list.sort(key=str.lower)
-        with open(filename, "wb") as f:
-            pickle.dump(gene_list, f)
-        return gene_list
+            gene_list.sort(key=str.lower)
+            with open(filename, "wb") as f:
+                pickle.dump(gene_list, f)
+            return gene_list
 
 # returns a list of cell_IDs 
 # expects a list of lists of datapoint dictionaries
@@ -197,10 +228,14 @@ def get_disease_data(session_ID, selected_gene):
     #ret = ret["gene_snapshot_text"]
     return ret
 
-def cache_multicolor_scale(multi_color_scale=None):
-    filename = save_analysis_path + "multi_color_scale.pickle"
+def cache_multicolor_scale(session_ID, multi_color_scale=None):
+    if not (session_ID == None):
+        filename = save_analysis_path + str(session_ID) + "/multi_color_scale.pickle"
+    else:
+        filename = save_analysis_path + "multi_color_scale.pickle"
+
     if (multi_color_scale is None):
-        if (path.isfile(filename) is True):
+        if (os.path.isfile(filename) is True):
             with open(filename, "rb") as f:
                 multi_color_scale = pickle.load(f)
         else:
@@ -213,3 +248,20 @@ def cache_multicolor_scale(multi_color_scale=None):
         with open(filename, "wb") as f:
             pickle.dump(multi_color_scale, f)
         return multi_color_scale
+
+def remove_old_cache(n_days=1.5):
+    n_sec_in_day = 86400
+    max_time_in_sec = int(n_sec_in_day * n_days)
+    
+    now = time.time()
+
+    for r,d,f in os.walk(save_analysis_path):
+        for directory in d:
+            timestamp = os.path.getmtime(os.path.join(r,directory))
+            if (now-max_time_in_sec > timestamp):
+                try:
+                    print("[CLEANUP] removing " + str(os.path.join(r,directory)))
+                    shutil.rmtree(os.path.join(r,directory))
+                except Exception as e:
+                    print("[ERROR] " + str(e))
+                    pass

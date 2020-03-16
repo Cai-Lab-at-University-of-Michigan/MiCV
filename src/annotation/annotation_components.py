@@ -3,7 +3,7 @@ import dash_html_components as html
 import dash_bootstrap_components as dbc
 import plotly.graph_objs as go
 
-from plotting.plotting_parameters import scale
+from plotting.plotting_parameters import *
 
 def plot_clustering_UMAP():
     g = dcc.Graph(
@@ -25,11 +25,10 @@ def plot_clustering_UMAP():
             'layout': go.Layout(
                 xaxis={'title': 'UMAP1'},
                 yaxis={'title': "UMAP2"},
-                margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                margin=margin,
                 legend={'x': 0, 'y': 1},
                 hovermode='closest',
-                width=4 * scale,
-                height=3 * scale
+                autosize=True
             )
         }
     )
@@ -55,11 +54,10 @@ def plot_pseudotime_UMAP():
             'layout': go.Layout(
                 xaxis={'title': 'UMAP1'},
                 yaxis={'title': "UMAP2"},
-                margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                margin=margin,
                 legend={'x': 0, 'y': 1},
                 hovermode='closest',
-                width=4 * scale,
-                height=3 * scale
+                autosize=True
             )
         }
     )
@@ -86,11 +84,10 @@ def plot_gene_pseudotime():
             'layout': go.Layout(
                 xaxis={'title': 'Pseudotime'},
                 yaxis={'title': "Expression"},
-                margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                margin=margin,
                 legend={'x': 0, 'y': 1},
                 hovermode='closest',
-                width=4 * scale,
-                height=2 * scale
+                autosize=True
             )
         }
     )
@@ -116,11 +113,10 @@ def plot_expression_UMAP():
             'layout': go.Layout(
                 xaxis={'title': 'UMAP1'},
                 yaxis={'title': "UMAP2"},
-                margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                margin=margin,
                 legend={'x': 0, 'y': 1},
                 hovermode='closest',
-                width=4 * scale,
-                height=3 * scale
+                autosize=True
             )
         }
     )
@@ -144,11 +140,10 @@ def plot_gene_violin():
             'layout': go.Layout(
                 xaxis={'title': 'Gene'},
                 yaxis={'title': "Expression"},
-                margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                margin=margin,
                 legend={'x': 0, 'y': 1},
                 hovermode='closest',
-                width=4 * scale,
-                height=2 * scale
+                autosize=True
             )
         }
     )
@@ -173,7 +168,7 @@ def single_gene_dropdown():
         value=None,
         multi=False,
         searchable=True,
-        placeholder="Gene selection (single, log expression)"
+        placeholder="Select a gene (single, log expression)"
         )  
     return m
 
@@ -185,7 +180,7 @@ def mixed_gene_dropdown():
         value=None,
         multi=True,
         searchable=True,
-        placeholder="Gene selection (multiple, relative expression)"
+        placeholder="Select some genes (multiple, relative expression)"
         )  
     return m
 
@@ -197,7 +192,7 @@ def multi_gene_dropdown():
         value=[],
         multi=True,
         searchable=True,
-        placeholder="Gene selection (multiple)"
+        placeholder="Select some genes (multiple)"
         ) 
     return m 
 
@@ -209,7 +204,7 @@ def pseudotime_dropdown():
             {'label': 'differentiation potential', 'value': 'differentiation_potential'},
         ],
         value=None,
-        placeholder="pseudotime",
+        placeholder="(only if calculated previously) Choose a pseudotime observation",
         multi=False,
         searchable=True
         ) 
@@ -234,7 +229,7 @@ def pseudotime_gene_branch_dropdown():
         value=None,
         multi=False,
         searchable=True,
-        placeholder="Branch number"
+        placeholder="(only if calculated previously) choose a pseudotime branch"
         ) 
     return m 
 
@@ -251,7 +246,7 @@ def clustering_dropdown():
             {'label': 'user_4', 'value': 'user_4'},
         ],
         value=None,
-        placeholder="leiden",
+        placeholder="Choose automatic (leiden) clustering or a user column to add your own clusters to",
         multi=False,
         searchable=True
         ) 

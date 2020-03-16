@@ -11,13 +11,12 @@ from app import app
 
 #### Marker gene page callbacks ####
 @app.callback(
-    [Output("marker_gene_UMAP_dropdown", "options"),
-     Output("exporting_obs_column_dropdown", "options")],
-    [Input("refresh_all_status", "children")],
+    Output("marker_gene_UMAP_dropdown", "options"),
+    [Input("main_tabs", "active_tab")],
     [State('session-id', 'children')]
 )
-def refresh_marker_gene_UMAP_dropdown(processing_status, session_ID):
-    default_return = [dash.no_update, dash.no_update]
+def refresh_marker_gene_UMAP_dropdown(active_tab, session_ID):
+    default_return = dash.no_update
 
     print("[STATUS] refreshing marker gene UMAP dropdown options")
     # figure out which button was pressed - what refresh functions to call
@@ -28,7 +27,7 @@ def refresh_marker_gene_UMAP_dropdown(processing_status, session_ID):
     else:
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    if (processing_status in [None, [], 0, ""]):
+    if (active_tab != "markergenes_tab"):
         return default_return
 
     adata = cache_adata(session_ID)
@@ -39,7 +38,7 @@ def refresh_marker_gene_UMAP_dropdown(processing_status, session_ID):
     options = [
         {"label": str(x), "value": str(x)} for x in a.columns.to_list()
     ]
-    return [options, options]
+    return options
 
 @app.callback(
     [Output("marker_gene_group_dropdown", "options"),
@@ -66,7 +65,8 @@ def refresh_marker_gene_group_dropdown(obs_column,
     if (obs_column in ["", 0, None, []]):
         return default_return
 
-    if (adata is None):
+    if ((adata is None)
+    or not (obs_column in adata.obs)):
         return default_return
     
     options = [
@@ -106,6 +106,9 @@ def refresh_marker_gene_plot(n_clicks, obs_column, groups_to_rank,
     if (n_clicks in [[], None, 0]):
         return dash.no_update
 
+    if (groups_to_rank in [[], None, 0, ""]):
+        return dash.no_update
+    
     adata = cache_adata(session_ID)
     adata = identify_marker_genes(adata, obs_column, groups_to_rank, method)
     return plot_marker_genes(adata, obs_column, groups_to_rank)

@@ -5,44 +5,38 @@ import dash_bootstrap_components as dbc
 
 from . import processing_components as cc
 
+demo = True
+
 def processing_layout():
 	m = dbc.Tab(label='Processing', children=[
 			# File uploading
-			dbc.Col(children=[
-				html.Div(children=[
+			dbc.Row(children=[
+	    		dbc.Col(children=[
 	    			dbc.Card(children=[
 	        			dbc.CardHeader(children=[
 	        				dbc.Button(
-				            "Upload",
+				            "Select data",
 				            id="upload-collapse-button",
 				            className="mb-3",
 				            color="primary",
 				        	),
 				        ]),
 				        dbc.Collapse(children=[
-				            dcc.Upload(
-						        id='upload_raw_data',
-						        children=html.Div([
-						            '''Drag and drop either an h5ad anndata object,
-						            or a .zip file containing your 10X output
-						            directory's contents. Alternatively ''',
-						            html.A('select a file')
-						        ]),
-						        style={
-						            'width': '100%',
-						            'height': '60px',
-						            'lineHeight': '60px',
-						            'borderWidth': '1px',
-						            'borderStyle': 'dashed',
-						            'borderRadius': '5px',
-						            'textAlign': 'center',
-						            'margin': '10px'
-						        },
-						        # Allow multiple files to be uploaded
-						        multiple=False
-						    ),
-						    html.Div(id='upload_raw_data_success_output',
-									style={'margin-top': 20}),
+				        	html.Div([
+							    html.P('''
+							    	Either upload your own data (disabled) 
+							    	or search for a pre-made dataset
+							    	to load into MiCV for analysis.
+									''')
+								], 
+								style={'marginBottom': 20, 'marginTop': 20}
+							),
+				            dbc.Row(children=[
+				            	cc.processing_dataset_dropdown(),
+				            	(cc.processing_data_upload() if (demo is False) else html.Div()),
+							], no_gutters=True),
+							html.Div(id='upload_spacer_div',
+						    		 style={'margin-top': 250}),			
 						], id="upload-collapse"),
 					]),
 
@@ -60,9 +54,9 @@ def processing_layout():
 						    		 style={'margin-top': 20}),			
 						    dcc.RangeSlider(
 						    	id="min_max_genes_slider",
-							    min=1,
+							    min=0,
 							    max=20000,
-							    step=10,
+							    step=25,
 							    marks={
 							        200: "200\n(default min)",
 							        1000: "1000",
@@ -75,8 +69,12 @@ def processing_layout():
 							html.Div([
 							    html.P('''
 							    	Filter cells based off of the minimum and maximum number of 
-							    	unique genes that they must express. Low/high expressing cells
-							    	are often debris or doublets, respectively.
+							    	unique genes that they must express. Cells expressing very few
+							    	genes are often really debris. Cells expressing very many
+							    	unique genes are often really doublets (2 cells 1 droplet). However,
+							    	depending on the biological makeup of your sample, cells
+							    	that express many unique genes might represent
+							    	larger-than-average or transcriptionally very active cells.
 									''')
 								], 
 								style={'marginBottom': 20, 'marginTop': 20}
@@ -101,8 +99,10 @@ def processing_layout():
 							html.Div([
 							    html.P('''
 							    	Filter genes based on how many cells express it. Genes expressed
-							    	in fewer than a few cells might be too poorly recovered to be useful
-							    	for downstream analysis.
+							    	in very few cells might be too poorly recovered to be useful
+							    	for downstream analysis, and should be removed. Genes will be further
+							    	filtered down even further after this by the
+							    	highly variable gene selection process.
 									''')
 								], 
 								style={'marginBottom': 20, 'marginTop': 20}
@@ -128,7 +128,8 @@ def processing_layout():
 							    html.P('''
 							    	Choose how many highly variable genes to consider for downstream
 							    	dimensionality reduction, clustering, and other analysis. This is
-							    	based on the cell-ranger style of highly-variable gene selection.
+							    	based on the cell-ranger style of highly-variable gene selection, 
+							    	and 2000 is generally a good starting point.
 									''')
 								], style={'marginBottom': 20, 'marginTop': 20}
 							),
@@ -166,14 +167,24 @@ def processing_layout():
 						    ),
 							html.Div([
 							    html.P('''
-							    	This is roughly related to the minimum number of cells that
-									will be grouped into a cluster together, and changes the way
-									the UMAP projection is structured.
+							    	The number of neighbors is roughly related to the 
+							    	minimum number of cells that
+									will be grouped into a cluster together. It changes the way
+									the UMAP projection is structured, and can affect cluster
+									sizes.
 									''')
 								], style={'marginBottom': 20, 'marginTop': 20}
 							),
+							html.Div([
+							    html.P('''
+							    	The standard neighborhood identification algorithm is 
+							    	what you want to use, unless your data has multiple 
+							    	biological batches and an obs column labelled "batch".
+									''')
+								], style={'marginBottom': 10, 'marginTop': 20}
+							),
 							cc.neighbors_method_radio(),
-							dbc.Button("Recalculate (only) projection", 
+							dbc.Button("Recalculate projection", 
 					    				id="refresh_projection_button"),
 						], id="projection-collapse"),
 				    ]),
@@ -208,7 +219,11 @@ def processing_layout():
 							html.Div([
 							    html.P('''
 							    	Higher clustering resolution leads to a greater number of 
-							    	clusters (finer-grained).
+							    	clusters (fine-grained), whereas lower clustering resolution
+							    	generates fewer cluster (coarse-grained). It is highly encouraged
+							    	that you try multiple resolutions. Gauge their fitness by checking
+							    	their marker gene overlap (next tab) and through 
+							    	in situ validation experiments.
 									''')
 								], 
 								style={'marginBottom': 20, 'marginTop': 20}
@@ -216,24 +231,31 @@ def processing_layout():
 						    dbc.Button("Recalculate clusters", 
 						    			id="refresh_clustering_button"),
 						], id="clustering-collapse"),
-				    ]),
+					]),
 	    		],  className="accordion"),
+			]),
+
+			dbc.Row(children=[
 				dbc.Col(children=[
 					# Buttons to do the recalculations
+					html.P('''
+				    	After loading a dataset and choosing QC,
+				    	projection, and clustering parameters, click
+				    	this button to prepare your data for analysis.
+
+				    	(Note that this is optional for pre-made
+				    	datasets, as basic pre-processing has already
+				    	been completed.)
+					''', style={'margin-top': 10}),
 				    dbc.Button("Recalculate everything", 
 				    			 id="refresh_all_button"),
-				    html.P('''
-				    	Run this first after uploading your data 
-				    	& doing QC parameter selection
-						'''),
 				    html.Div(id='refresh_all_status',
-						     style={'margin-top': 20})
-			    ], width=3)
+						     style={'margin-top': 10})
+		    	], width=6),
 			]),
 
 		    dbc.Row(children=[
 			    dbc.Col(children=[
-				   	# pseudotime gene expression plot
 				    html.H3(children="Processing UMAP plots"),
 				    html.P("Use this dropdown menu to observe your data"),
 				    cc.processing_UMAP_dropdown(),
@@ -241,11 +263,11 @@ def processing_layout():
 			    	dcc.Loading(children=[cc.plot_processing_UMAP()])	
 				], width=6),
 				dbc.Col(children=[
-					    html.H3(children="Processing QC plots"),
-					    html.P("Use this dropdown menu view different QC facets"),
-					    cc.processing_QC_dropdown(),
-				    	dcc.Loading(children=[cc.plot_processing_QC()])		
-				], width=6)
+				    html.H3(children="Processing QC plots"),
+				    html.P("Use this dropdown menu view different QC facets"),
+				    cc.processing_QC_dropdown(),
+			    	dcc.Loading(children=[cc.plot_processing_QC()])		
+				], width=5)
 			]),
 		])
 

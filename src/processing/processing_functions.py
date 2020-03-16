@@ -8,12 +8,11 @@ import palantir
 
 from helper_functions import *
 
-def preprocess_data(session_ID,
+def preprocess_data(session_ID, adata,
                     min_cells=2, min_genes=200, max_genes=10000,
                     target_sum=1e6, flavor="cell_ranger", 
                     n_top_genes=2000):
 
-    adata = cache_adata(session_ID)
     print("[DEBUG] adata: " + str(adata))
 
     # do preprocessing
@@ -58,7 +57,7 @@ def do_neighborhood_graph(session_ID, adata, method="standard",
     if ((method == "standard") or (not ("batch" in adata.obs))):
         sc.pp.neighbors(adata, n_neighbors=n_neighbors, random_state=random_state)
     elif (method == "bbknn"):
-        sc.external.pp.bbknn(adata, batch_key="batch")
+        sc.external.pp.bbknn(adata, batch_key="batch", approx=True)
 
     new_adata = adata.copy()
 

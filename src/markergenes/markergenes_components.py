@@ -3,7 +3,7 @@ import dash_html_components as html
 import dash_bootstrap_components as dbc
 import plotly.graph_objs as go
 
-from plotting.plotting_parameters import scale
+from plotting.plotting_parameters import *
 
 ### MARKER GENE TAB CUSTOM COMPONENTS ###
 def marker_gene_UMAP_dropdown():
@@ -12,7 +12,7 @@ def marker_gene_UMAP_dropdown():
     options=[
     ],
     value=None,
-    placeholder="group",
+    placeholder="Choose a cellular observation",
     multi=False,
     searchable=True
     ) 
@@ -38,11 +38,11 @@ def plot_marker_gene_UMAP():
             'layout': go.Layout(
                 xaxis={'title': 'UMAP1'},
                 yaxis={'title': "UMAP2"},
-                margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                margin=margin,
                 legend={'x': 0, 'y': 1},
                 hovermode='closest',
-                width=4 * scale,
-                height=3 * scale
+                #width=4 * scale,
+                #height=3 * scale
             )
         }
     )
@@ -54,7 +54,7 @@ def marker_gene_group_dropdown():
         options=[
         ],
         value=None,
-        placeholder="group",
+        placeholder="Choose some groups to compare",
         multi=True,
         searchable=True
         ) 

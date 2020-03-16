@@ -35,14 +35,16 @@ def exporting_obs_subset_link_button():
     m = html.A(dbc.Button("Export subset",
                id="exporting_obs_link_button",
                disabled=True),
-               id="exporting_obs_link",
-               href="/MiCV/download/subset_h5ad"
+               id="exporting_obs_subset_link",
+               href=""
         )
     return m
 
 def exporting_button():
     m = html.A(dbc.Button("Export all", 
-                   id="exporting_button"),
-               href="/MiCV/download/h5ad"
+               id="exporting_button",
+               disabled=True),
+               id="exporting_link",
+               href=""
         )
     return m

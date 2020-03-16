@@ -3,7 +3,7 @@ import plotly.graph_objs as go
 
 import pandas as pd
 
-from plotting.plotting_parameters import scale
+from plotting.plotting_parameters import *
 
 ### PROCESSING TAB CUSTOM COMPONENTS ###
 def plot_pseudotime_UMAP():
@@ -26,11 +26,11 @@ def plot_pseudotime_UMAP():
             'layout': go.Layout(
                 xaxis={'title': 'UMAP1'},
                 yaxis={'title': "UMAP2"},
-                margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                margin=margin,
                 legend={'x': 0, 'y': 1},
                 hovermode='closest',
-                width=4 * scale,
-                height=3 * scale
+                #width=4 * scale,
+                #height=3 * scale
             )
         }
     )
@@ -48,7 +48,7 @@ def pseudotime_UMAP_dropdown():
             {'label': 'differentiation potential', 'value': 'differentiation potential'},
         ],
         value=None,
-        placeholder="leiden",
+        placeholder="Choose a cellular observation",
         multi=False,
         searchable=True
         ) 

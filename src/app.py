@@ -5,6 +5,8 @@ import layouts
 
 app = dash.Dash(__name__, show_undo_redo=False)
 
+app.title = "MiCV"
+
 app.server.secret_key = b"\xc9j\xa2@k\x04\x0e\x8a\xe9\xb6\xfbA\xdfsU\x05\xdfe\xec@\x05\x0b\xfd\x9a"
 server = app.server
 

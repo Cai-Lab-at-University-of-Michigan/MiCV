@@ -11,7 +11,7 @@ from app import app
 @app.callback(
     [Output("clustering_UMAP_plot", "figure"),
      Output("total_cell_count", "value")],
-    [Input("load_analysis_button", "n_clicks"),
+    [Input("main_tabs", "active_tab"),
      Input("define_cluster_button", "n_clicks"),
      Input("clustering_dropdown", "value"),
      Input("pseudotime_UMAP_plot", "selectedData"),
@@ -21,7 +21,7 @@ from app import app
     [State("session-id", "children"),
      State("clustering_UMAP_plot", "selectedData")]
 )
-def refresh_clustering_plot(load_btn_clicks, 
+def refresh_clustering_plot(active_tab, 
                             cluster_btn_clicks, clustering_plot_type, pt_selected,
                             expr_selected, violin_selected, pt_gene_selected, 
                             session_ID, clust_selected,  
@@ -41,8 +41,8 @@ def refresh_clustering_plot(load_btn_clicks,
         return default_return
 
     # Must go first - otherwise there's no adata object to load from cache
-    if(button_id == "load_analysis_button"):
-        if (load_btn_clicks in [None, 0]):
+    if(button_id == "annotation_tab"):
+        if (active_tab != "annotation_tab"):
             return default_return
         else:
             adata = cache_adata(session_ID)
@@ -123,6 +123,9 @@ def refresh_clustering_plot(load_btn_clicks,
 
 
     adata = cache_adata(session_ID)
+    if ((adata is None)
+    or not (clustering_plot_type in adata.obs)):
+        return default_return
 
     # on first run with this dataset, add columns for user cluster annotations
     for i in ["user_" + str(j) for j in range(0, 10)]:
@@ -168,11 +171,11 @@ def refresh_UMAP_clustering_count(selected_cells, session_ID, n_total_cells):
     Output("pseudotime_UMAP_plot", "figure"),
     [Input("pseudotime_dropdown", "value")],
     [State('session-id', 'children'),
-     State("load_analysis_button", "n_clicks"),
+     State("main_tabs", "active_tab"),
      State("n_dims_proj_expression_radio", "value")]
 )
-def refresh_pseudotime_plot(pt_plot_type, session_ID, load_btn_clicks, 
-                            n_dims_proj,adata=None, data_dir=None):
+def refresh_pseudotime_plot(pt_plot_type, session_ID, active_tab, 
+                            n_dims_proj, adata=None, data_dir=None):
 
     print("[STATUS] refreshing pseudotime plot")
     # figure out which button was pressed - what refresh functions to call
@@ -184,7 +187,7 @@ def refresh_pseudotime_plot(pt_plot_type, session_ID, load_btn_clicks,
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     if (button_id == "pseudotime_dropdown"):
-        if (load_btn_clicks in [None, "", [], 0]):
+        if (active_tab != "annotation_tab"):
             return dash.no_update
 
     # do nothing if no buttons pressed
@@ -194,6 +197,11 @@ def refresh_pseudotime_plot(pt_plot_type, session_ID, load_btn_clicks,
     
     # get the adata object from the cache
     adata = cache_adata(session_ID)
+
+    if ((adata is None)
+    or not (pt_plot_type in adata.obs)):
+        return dash.no_update
+    
     # regardless of what updates were requested - update the plot
     print("[STATUS] updating pseudotime plot")
     return plot_pseudotime_UMAP(adata, pt_plot_type)
@@ -218,25 +226,33 @@ def refresh_UMAP_pseudotime_count(selected_cells, session_ID, n_total_cells):
 
 @app.callback(
     Output("single_gene_dropdown", "options"),
-    [Input("load_analysis_button", "n_clicks")],
+    [Input("main_tabs", "active_tab")],
     [State("session-id", "children")]
 )
-def update_single_gene_dropdown(n0, session_ID):
-    if (n0 in [0, None]):
+def update_single_gene_dropdown(active_tab, session_ID):
+    print("[DEBUG] active_tab: " + str(active_tab))
+    if (active_tab != "annotation_tab"):
         return dash.no_update
+    
     gene_list = cache_gene_list(session_ID)
+    if (gene_list in [None, 0, "", []]):
+        return dash.no_update
+
     options = [{"label": i, "value": i} for i in gene_list]
     return options
 
 @app.callback(
     Output("mixed_gene_dropdown", "options"),
-    [Input("load_analysis_button", "n_clicks")],
+    [Input("main_tabs", "active_tab")],
     [State("session-id", "children")]
 )
-def update_mixed_gene_dropdown(n0, session_ID):
-    if (n0 in [0, None]):
+def update_mixed_gene_dropdown(active_tab, session_ID):
+    if (active_tab != "annotation_tab"):
         return dash.no_update
     gene_list = cache_gene_list(session_ID)
+    if (gene_list in [None, 0, "", []]):
+        return dash.no_update
+    
     options = [{"label": i, "value": i} for i in gene_list]
     return options
 
@@ -264,7 +280,8 @@ def refresh_expression_UMAP_plot(selected_gene, selected_mixed_genes,
 
     adata = cache_adata(session_ID)
     print("[STATUS] updating expression UMAP plot")
-    return plot_expression_UMAP(adata, plot_these_genes, multi, n_dim=n_dims_proj)
+    return plot_expression_UMAP(adata, plot_these_genes, multi, n_dim=n_dims_proj,
+                                session_ID=session_ID)
 
 @app.callback(
     Output("gene_UMAP_count", "children"),
@@ -285,55 +302,66 @@ def refresh_UMAP_gene_count(selected_cells, session_ID, n_total_cells):
 
 @app.callback(
     Output("multi_gene_dropdown", "options"),
-    [Input("load_analysis_button", "n_clicks")],
+    [Input("main_tabs", "active_tab")],
     [State("session-id", "children")]
 )
-def update_multi_gene_dropdown(n0, session_ID):
-    if (n0 in [0, None]):
+def update_multi_gene_dropdown(active_tab, session_ID):
+    if (active_tab != "annotation_tab"):
         return dash.no_update
+    
     gene_list = cache_gene_list(session_ID)
+    if (gene_list in [None, 0, "", []]):
+        return dash.no_update
+
     options = [{"label": i, "value": i} for i in gene_list]
     return options
 
 @app.callback(
-    Output("pseudotime_gene_plot", "figure"),
+    [Output("pseudotime_gene_plot", "figure"),
+     Output("violin_gene_plot", "figure")],
     [Input("multi_gene_dropdown", "value"),
      Input("pseudotime_gene_relative_radio", "value"),
      Input("pseudotime_gene_branch_dropdown", "value")],
     [State('session-id', 'children')]
 )
 def refresh_pseudotime_gene_plot(selected_genes, relative, branch_n, session_ID):
+    default_return = [dash.no_update, dash.no_update]
+    if (selected_genes in [None, 0, [], ""]):
+        return default_return
+    
+    ret = default_return
+
     print("[STATUS] plotting gene pseudotime expression for: " + str(selected_genes))
-    if (selected_genes in [None, 0, []]):
-        return dash.no_update
 
-    if (branch_n in ["", 0, None, []]):
-        return dash.no_update
+    if not(branch_n in ["", 0, None, []]):
+        gene_trends = cache_gene_trends(session_ID)
+        if not (gene_trends in ["", 0, None, []]):
+            branches = list(gene_trends.keys()) #branch names (cell_IDs of terminal cells)
+            ret[0] = plot_expression_trend(gene_trends, selected_genes, 
+                                        selected_branch=branches[branch_n], 
+                                        relative=relative)
+    
+    print("[STATUS] updating violin gene plot")
+    adata = cache_adata(session_ID)
+    ret[1] = plot_expression_violin(adata, selected_genes)
 
-    gene_trends = cache_gene_trends(session_ID)
-    if (gene_trends in ["", 0, None, []]):
-        return dash.no_update
+    return ret
 
-    branches = list(gene_trends.keys()) #branch names (cell_IDs of terminal cells)
-
-    return plot_expression_trend(gene_trends, selected_genes, 
-                                 selected_branch=branches[branch_n], 
-                                 relative=relative)
-
+'''
 @app.callback(
     Output("violin_gene_plot", "figure"),
     [Input("multi_gene_dropdown", "value")],
     [State('session-id', 'children')]
 )
 def refresh_violin_gene_plot(selected_genes, session_ID):
-    if (selected_genes in [None, 0, []]):
+    if (selected_genes in [None, 0, [], ""]):
         return dash.no_update
 
     print("[STATUS] updating violin gene plot")
     adata = cache_adata(session_ID)
 
     return plot_expression_violin(adata, selected_genes)
-
+'''
 @app.callback(
     Output("gene_violin_count", "children"),
     [Input("violin_gene_plot", "selectedData")],
