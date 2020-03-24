@@ -18,30 +18,37 @@ from plotting.discrete_color_scales import *
 from plotting.plotting_parameters import *
 
 
-def plot_UMAP(adata, clustering_plot_type, selected_cell_intersection=[], n_dim=2):
+def plot_UMAP(session_ID, clustering_plot_type, selected_cell_intersection=[], n_dim=2):
     print("[DEBUG] generating new UMAP plot")
 
+    obs  = cache_adata(session_ID, group="obs")
+    obsm = cache_adata(session_ID, group="obsm")
+
     # validate that there is a 3D projection available if that was requested
-    if (n_dim == 3):
-        if not ("X_umap_3D" in adata.obsm):
-            n_dim = 2
+    if (("X_umap_3D" in obsm.keys()) and (n_dim == 3)):
+        coords = pd.DataFrame(obsm["X_umap_3D"], index=obs.index)
+    else:
+        n_dim = 2
+        coords = pd.DataFrame(obsm["X_umap"], index=obs.index)
+
     
     traces = []
-    for i,val in enumerate(sorted(adata.obs[clustering_plot_type].unique())):
-        a = adata[adata.obs[clustering_plot_type] == val]
+    for i,val in enumerate(sorted(obs[clustering_plot_type].unique())):
+        a = obs[obs[clustering_plot_type] == val]
+        b = coords[obs[clustering_plot_type] == val]
         s = []
         if (selected_cell_intersection in [None, []]):
-        	s = list(range(0, len((a.obs).index)))
+        	s = list(range(0, len(a.index)))
         else:
 	        for c in selected_cell_intersection:
-	            if (c in a.obs["cell_numeric_index"]):
-	                s.append((a.obs).index.get_loc(c))
+	            if (c in a["cell_numeric_index"]):
+	                s.append(a.index.get_loc(c))
         if (n_dim == 2):
             traces.append(
                 go.Scattergl(
-                    x=a.obsm["X_umap"][:,0],
-                    y=a.obsm["X_umap"][:,1],
-                    text="Cell ID: " + a.obs["cell_ID"],
+                    x=b[0],
+                    y=b[1],
+                    text="Cell ID: " + a["cell_ID"],
                     mode='markers',
                     selectedpoints=s,
                     marker={
@@ -63,10 +70,10 @@ def plot_UMAP(adata, clustering_plot_type, selected_cell_intersection=[], n_dim=
         elif (n_dim == 3):
             traces.append(
                 go.Scatter3d(
-                    x=a.obsm["X_umap_3D"][:,0],
-                    y=a.obsm["X_umap_3D"][:,1],
-                    z=a.obsm["X_umap_3D"][:,2],
-                    text="Cell ID: " + a.obs["cell_ID"],
+                    x=b[0],
+                    y=b[1],
+                    z=b[2],
+                    text="Cell ID: " + a["cell_ID"],
                     mode='markers',
                     marker={
                         'size': point_size_3d,
@@ -108,24 +115,36 @@ def plot_UMAP(adata, clustering_plot_type, selected_cell_intersection=[], n_dim=
             )
         }
 
-def plot_pseudotime_UMAP(adata, pt_plot_type):
+def plot_pseudotime_UMAP(session_ID, pt_plot_type, n_dim=2):
+
+    obs  = cache_adata(session_ID, group="obs")
+    obsm = cache_adata(session_ID, group="obsm")
+
+    # validate that there is a 3D projection available if that was requested
+    if (("X_umap_3D" in obsm.keys()) and (n_dim == 3)):
+        coords = pd.DataFrame(obsm["X_umap_3D"], index=obs.index)
+    else:
+        n_dim = 2
+        coords = pd.DataFrame(obsm["X_umap"], index=obs.index)
+
     if (pt_plot_type == "pseudotime"):
     	colorbar_label = "pseudotime"
     elif (pt_plot_type == "differentiation_potential"):
     	colorbar_label = "diff. pot."
     elif ("pseudotime_branch_" in pt_plot_type):
         colorbar_label = "branch " + str(pt_plot_type[-1]) + " prob."
+
     traces = []
     traces.append(
         go.Scattergl(
-            x=adata.obsm["X_umap"][:,0],
-            y=adata.obsm["X_umap"][:,1],
-            text="Cell ID: " + adata.obs["cell_ID"],
+            x=coords[0],
+            y=coords[1],
+            text="Cell ID: " + obs["cell_ID"],
             mode='markers',
             marker={
                 'size': point_size_2d,
                 'line': {'width': point_line_width_2d, 'color': 'grey'},
-                "color": adata.obs[str(pt_plot_type)],
+                "color": obs[str(pt_plot_type)],
                 "colorscale": "plasma",
                 "cmin": 0,
                 "cmax": 1,
@@ -158,13 +177,19 @@ def plot_pseudotime_UMAP(adata, pt_plot_type):
         )
     }
 
-def plot_expression_UMAP(adata, selected_genes, multi="standard", n_dim=2,
-                         session_ID=None):
+def plot_expression_UMAP(session_ID, selected_genes, multi="standard", n_dim=2):
     
+    adata  = cache_adata(session_ID)
+    obsm   = adata.obsm
+    obs    = adata.obs
+
     # validate that there is a 3D projection available if that was requested
-    if (n_dim == 3):
-        if not ("X_umap_3D" in adata.obsm):
-            n_dim = 2
+    if (("X_umap_3D" in obsm.keys()) and (n_dim == 3)):
+        coords = pd.DataFrame(obsm["X_umap_3D"], index=obs.index)
+    else:
+        n_dim = 2
+        coords = pd.DataFrame(obsm["X_umap"], index=obs.index)
+
 
     if (multi == "standard"):
         colorscale = "viridis"
@@ -173,9 +198,9 @@ def plot_expression_UMAP(adata, selected_genes, multi="standard", n_dim=2,
         if (n_dim == 2):
             traces.append(
                 go.Scattergl(
-                    x=adata.obsm["X_umap"][:,0],
-                    y=adata.obsm["X_umap"][:,1],
-                    text="Cell ID: " + adata.obs["cell_ID"],
+                    x=coords[0],
+                    y=coords[1],
+                    text="Cell ID: " + obs["cell_ID"],
                     mode='markers',
                     marker={
                         'size': point_size_2d,
@@ -201,10 +226,10 @@ def plot_expression_UMAP(adata, selected_genes, multi="standard", n_dim=2,
         elif (n_dim == 3):
             traces.append(
                 go.Scatter3d(
-                    x=adata.obsm["X_umap_3D"][:,0],
-                    y=adata.obsm["X_umap_3D"][:,1],
-                    z=adata.obsm["X_umap_3D"][:,2],
-                    text="Cell ID: " + adata.obs["cell_ID"],
+                    x=coords[0],
+                    y=coords[1],
+                    z=coords[2],
+                    text="Cell ID: " + obs["cell_ID"],
                     mode='markers',
                     marker={
                         'size': point_size_3d,
@@ -228,9 +253,9 @@ def plot_expression_UMAP(adata, selected_genes, multi="standard", n_dim=2,
         if (n_dim == 2):
             traces.append(
                 go.Scattergl(
-                    x=adata.obsm["X_umap"][:,0],
-                    y=adata.obsm["X_umap"][:,1],
-                    text="Cell ID: " + adata.obs["cell_ID"],
+                    x=coords[0],
+                    y=coords[1],
+                    text="Cell ID: " + obs["cell_ID"],
                     mode='markers',
                     marker={
                         'size': point_size_2d,
@@ -250,10 +275,10 @@ def plot_expression_UMAP(adata, selected_genes, multi="standard", n_dim=2,
         elif (n_dim == 3):
             traces.append(
                 go.Scatter3d(
-                    x=adata.obsm["X_umap_3D"][:,0],
-                    y=adata.obsm["X_umap_3D"][:,1],
-                    z=adata.obsm["X_umap_3D"][:,2],
-                    text="Cell ID: " + adata.obs["cell_ID"],
+                    x=coords[0],
+                    y=coords[1],
+                    z=coords[2],
+                    text="Cell ID: " + obs["cell_ID"],
                     mode='markers',
                     marker={
                         'size': point_size_3d,
@@ -350,17 +375,21 @@ def plot_expression_trend(gene_trends, selected_genes, selected_branch,
         )
     }
 
-def plot_expression_violin(adata, selected_genes, show_points = "all"):
+def plot_expression_violin(session_ID, selected_genes, show_points = "all"):
+    adata  = cache_adata(session_ID)
+    var    = adata.var
+    obs    = adata.obs
+
     traces = []
     for i in selected_genes:
-        if not ((i in adata.var.index) or (i in adata.obs)):
+        if not ((i in var.index) or (i in obs)):
             print("[DEBUG] gene " + str(i) + " not in var index; skipping")
             continue
         d = adata.obs_vector(i)
         traces.append(
             go.Violin(
                 y=d,
-                text="Cell ID: " + adata.obs["cell_ID"],
+                text="Cell ID: " + obs["cell_ID"],
                 opacity=0.7,
                 box_visible=True,
                 meanline_visible=True,

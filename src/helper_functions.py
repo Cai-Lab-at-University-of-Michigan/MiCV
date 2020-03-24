@@ -4,16 +4,21 @@ import time
 import pickle
 
 from filelock import Timeout, FileLock
+import zarr
 
 import pandas as pd
+import numpy as np
 import scanpy as sc
 import anndata as ad
-import numpy as np
+from anndata._io.zarr import read_dataframe, read_attribute, write_attribute
+
 
 from plotting.multi_color_scale import MultiColorScale
 
 save_analysis_path = "/srv/www/MiCV/cache/"
 selected_datasets_path = "/srv/www/MiCV/selected_datasets/"
+
+use_zarr = True
 
 def generate_adata_from_10X(session_ID, data_type="10X_mtx"):
     data_dir = save_analysis_path + str(session_ID) + "/raw_data/"
@@ -45,8 +50,7 @@ def load_selected_dataset(session_ID, dataset_key):
     adata = sc.read_h5ad(filename + ".h5ad")
     return adata
 
-def cache_adata(session_ID, adata=None):
-    #filename = save_analysis_path  + "adata_cache.h5ad"
+def cache_adata(session_ID, adata=None, group=None):
     save_dir = save_analysis_path  + str(session_ID) + "/"
     if not (os.path.isdir(save_dir)):
         os.mkdir(save_dir)
@@ -55,8 +59,9 @@ def cache_adata(session_ID, adata=None):
     lock_filename = save_dir + "adata.lock"
     lock = FileLock(lock_filename, timeout=20)
     
-    with lock:
-        print("[DEBUG] filename = " + str(filename))
+    print("[DEBUG] filename = " + str(filename))
+    
+    if (use_zarr is False):
         if (adata is None):
             if (os.path.isfile(filename  + ".h5ad") is True):
                 adata = sc.read_h5ad(filename + ".h5ad")
@@ -69,14 +74,67 @@ def cache_adata(session_ID, adata=None):
                     adata.obs["cell_ID"] = adata.obs.index
                 if not ("cell_ID" in adata.obs):
                     adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
-                adata.write(filename + ".h5ad")
-                return adata
+                with lock:
+                    adata.write(filename + ".h5ad")
+                    return adata
             else:
                 print("[ERROR] adata object not saved at: " + str(filename))
                 return None
         else:
-            adata.write(filename + ".h5ad")
-            return adata
+            with lock:
+                adata.write(filename + ".h5ad")
+                return adata
+    
+    elif (use_zarr is True):
+        print("[DEBUG] using zarr for caching")
+        zarr_cache_dir = filename  + ".zarr"
+        attribute_groups = ["obs", "var", "obsm", "varm", "obsp", "varp", "layers", "X", "uns", "raw"]
+
+        if (adata is None): # then -> read it from the store
+            if (os.path.isdir(zarr_cache_dir) is True):
+                if (group in attribute_groups): # then -> return only that part of the object (fast)
+                    store = zarr.open(zarr_cache_dir, mode='r')
+                    ret = read_attribute(store[group])
+                    if not (ret is None):
+                        return ret
+                    else:
+                        print("[ERROR] group " + str(group) + "not saved in file: " + str(filename))
+                        return None
+                
+                elif (group is None): # then -> return the whole adata object (slow)
+                    adata = ad.read_zarr(zarr_cache_dir)
+                    if not (adata is None):
+                        return adata
+                    else:
+                        print("[ERROR] adata object not saved at: " + str(filename))
+                        return None
+        else: # then -> write it to the store
+            with lock:
+                if (group in attribute_groups): # then -> write only that part of the object (fast)
+                    store = zarr.open(zarr_cache_dir, mode='w')
+                    write_attribute(store, group, adata) # here adata is actually just a subset of adata
+                else: 
+                    adata.write_zarr(zarr_cache_dir)
+                return adata
+
+def adata_cache_exists(session_ID):
+    save_dir = save_analysis_path  + str(session_ID) + "/"
+    if not (os.path.isdir(save_dir)):
+        return False
+    
+    filename = save_dir + "adata_cache"
+    print("[DEBUG] filename = " + str(filename))
+    
+    if (use_zarr is True):
+        print("[DEBUG] using zarr for caching")
+        zarr_cache_dir = filename  + ".zarr"
+        if (os.path.isdir(zarr_cache_dir) is True):
+            z = zarr.open_group(zarr_cache_dir, mode="r")
+            if not (("obs" in z) and ("var" in z) and ("X" in z)):
+                return False
+            else:
+                return True
+
 
 def cache_gene_trends(session_ID, gene_trends=None):
     filename = save_analysis_path + str(session_ID) + "/gene_trends_cache.pickle"
@@ -103,27 +161,28 @@ def cache_gene_list(session_ID, gene_list=None):
     lock_filename = filename + ".lock"
     lock = FileLock(lock_filename, timeout=20)
     
-    with lock:
-        print("[DEBUG] filename = " + str(filename))
-        if (gene_list is None):
-            if (os.path.isfile(filename) is True):
-                with open(filename, "rb") as f:
-                    gene_list = pickle.load(f)
-            else:
-                print("[ERROR] gene list cache does not exist at: " + str(filename))
-                gene_list = None
-            return gene_list
+    print("[DEBUG] filename = " + str(filename))
+    if (gene_list is None):
+        if (os.path.isfile(filename) is True):
+            with open(filename, "rb") as f:
+                gene_list = pickle.load(f)
         else:
-            gene_list.sort(key=str.lower)
+            print("[ERROR] gene list cache does not exist at: " + str(filename))
+            gene_list = None
+        return gene_list
+    else:
+        gene_list.sort(key=str.lower)
+        with lock:
             with open(filename, "wb") as f:
                 pickle.dump(gene_list, f)
             return gene_list
 
 # returns a list of cell_IDs 
 # expects a list of lists of datapoint dictionaries
-def get_cell_intersection(session_ID, adata, list_of_selections,
+def get_cell_intersection(session_ID, list_of_selections,
                           pt_min=0, pt_max=1):
-    cell_intersection = set(adata.obs.index.to_list())
+    obs = cache_adata(session_ID, group="obs")
+    cell_intersection = set(obs.index.to_list())
 
     for cell_list in list_of_selections:
         if (cell_list in ["", 0, None, []]):
@@ -135,11 +194,11 @@ def get_cell_intersection(session_ID, adata, list_of_selections,
             cell_set.add(cell_ID)
         cell_intersection &= cell_set
     
-    if ("pseudotime" in adata.obs): 
+    if ("pseudotime" in obs): 
         if ((pt_min > 0) or (pt_max < 1)):
             for cell in list(cell_intersection):
-                if ((adata.obs.loc[cell, "pseudotime"] < pt_min)
-                or  (adata.obs.loc[cell, "pseudotime"] > pt_max)):
+                if ((obs.loc[cell, "pseudotime"] < pt_min)
+                or  (obs.loc[cell, "pseudotime"] > pt_max)):
                     cell_intersection.remove(cell)
 
     return cell_intersection

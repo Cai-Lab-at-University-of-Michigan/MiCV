@@ -30,11 +30,11 @@ def refresh_marker_gene_UMAP_dropdown(active_tab, session_ID):
     if (active_tab != "markergenes_tab"):
         return default_return
 
-    adata = cache_adata(session_ID)
-    if (adata is None):
+    obs = cache_adata(session_ID, group="obs")
+    if (obs is None):
         return default_return
 
-    a = adata.obs.select_dtypes(include=["category"])
+    a = obs.select_dtypes(include=["category"])
     options = [
         {"label": str(x), "value": str(x)} for x in a.columns.to_list()
     ]
@@ -60,24 +60,24 @@ def refresh_marker_gene_group_dropdown(obs_column,
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     print("[DEBUG] loading adata")
-    adata = cache_adata(session_ID)
+    obs = cache_adata(session_ID, group="obs")
     
     if (obs_column in ["", 0, None, []]):
         return default_return
 
-    if ((adata is None)
-    or not (obs_column in adata.obs)):
+    if ((obs is None)
+    or not (obs_column in obs)):
         return default_return
     
     options = [
-        {"label": str(x), "value": x} for x in (adata.obs[obs_column]).unique()
+        {"label": str(x), "value": x} for x in (obs[obs_column]).unique()
     ]
     options.insert(0, {"label": "all (default)", "value": "all"})
     
     if (obs_column in ["", None, 0, []]):
         fig = dash.no_update
     else:
-        fig = plot_UMAP(adata, obs_column, n_dim=n_dims_proj)
+        fig = plot_UMAP(session_ID, obs_column, n_dim=n_dims_proj)
     
     return [options, fig]
 

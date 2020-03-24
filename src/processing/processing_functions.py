@@ -46,10 +46,10 @@ def do_PCA(session_ID, adata, n_comps=50, random_state=0):
     print("[STATUS] doing PCA")
     sc.tl.pca(adata, svd_solver="arpack", 
               n_comps=n_comps, random_state=random_state)
-    new_adata = adata.copy()
+    #new_adata = adata.copy()
 
-    cache_adata(session_ID, new_adata)
-    return new_adata
+    cache_adata(session_ID, adata)
+    return adata
 
 def do_neighborhood_graph(session_ID, adata, method="standard",
                           n_neighbors=20, random_state=0):
@@ -59,10 +59,10 @@ def do_neighborhood_graph(session_ID, adata, method="standard",
     elif (method == "bbknn"):
         sc.external.pp.bbknn(adata, batch_key="batch", approx=True)
 
-    new_adata = adata.copy()
+    #new_adata = adata.copy()
 
-    cache_adata(session_ID, new_adata)
-    return new_adata
+    cache_adata(session_ID, adata)
+    return adata
 
 def do_UMAP(session_ID, adata, n_dim_proj=2, random_state=0):
     print("[STATUS] doing a UMAP projection")
@@ -81,8 +81,8 @@ def do_clustering(session_ID, adata, resolution=0.5,
     print("[STATUS] performing clustering")
     sc.tl.leiden(adata, resolution=resolution, 
                  random_state=random_state)
-    new_adata = adata.copy()
-    new_adata.obs["leiden_n"] = pd.to_numeric(adata.obs["leiden"])
+    #new_adata = adata.copy()
+    adata.obs["leiden_n"] = pd.to_numeric(adata.obs["leiden"])
 
-    cache_adata(session_ID, new_adata)
-    return new_adata
+    cache_adata(session_ID, adata)
+    return adata

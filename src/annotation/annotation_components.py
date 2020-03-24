@@ -238,7 +238,7 @@ def clustering_dropdown():
     m = dcc.Dropdown(
         id='clustering_dropdown',
         options=[
-            {'label': 'leiden', 'value': 'leiden_n'},
+            {'label': 'leiden', 'value': 'leiden'},
             {'label': 'user_0', 'value': 'user_0'},
             {'label': 'user_1', 'value': 'user_1'},
             {'label': 'user_2', 'value': 'user_2'},

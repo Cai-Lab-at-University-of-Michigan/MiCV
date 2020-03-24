@@ -109,7 +109,6 @@ def parse_selected_dataset(btn_clicks, dataset_key, session_ID):
     else:
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-
     if  (button_id == "processing_load_dataset_button"):
         if (btn_clicks in [None, 0]):
             return default_return
@@ -260,8 +259,7 @@ def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
         if (processing_plot_type in [0, "", None, []]):
             return default_return
         else:
-            adata = cache_adata(session_ID)
-            if (adata is None):
+            if (adata_cache_exists(session_ID) is False):
                 return default_return
 
     # do nothing if no buttons pressed
@@ -273,20 +271,20 @@ def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
         return default_return
 
     print("[STATUS] updating plot by: " + str(processing_plot_type))
-    adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
+    #adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
 
     if (processing_plot_type == "leiden_n"):
-        return plot_UMAP(adata, "leiden", n_dim=n_dim_proj_plot), "processing successful"
+        return plot_UMAP(session_ID, "leiden", n_dim=n_dim_proj_plot), "processing successful"
     elif (processing_plot_type == "pseudotime"):
-        return plot_pseudotime_UMAP(adata, "pseudotime"), "processing successful"
+        return plot_pseudotime_UMAP(session_ID, "pseudotime"), "processing successful"
     elif (processing_plot_type == "differentiation potential"):
-        return plot_pseudotime_UMAP(adata, "differentiation_potential"), "processing successful"
+        return plot_pseudotime_UMAP(session_ID, "differentiation_potential"), "processing successful"
     elif (processing_plot_type == "total_counts"):
-        return plot_expression_UMAP(adata, "total_counts", n_dim=n_dim_proj_plot), "processing successful"
+        return plot_expression_UMAP(session_ID, "total_counts", n_dim=n_dim_proj_plot), "processing successful"
     elif (processing_plot_type == "n_genes"):
-        return plot_expression_UMAP(adata, "n_genes", n_dim=n_dim_proj_plot), "processing successful"
+        return plot_expression_UMAP(session_ID, "n_genes", n_dim=n_dim_proj_plot), "processing successful"
     elif (processing_plot_type == "log1p_total_counts"):
-        return plot_expression_UMAP(adata, "log1p_total_counts", n_dim=n_dim_proj_plot), "processing successful"
+        return plot_expression_UMAP(session_ID, "log1p_total_counts", n_dim=n_dim_proj_plot), "processing successful"
 
 @app.callback(
     Output("processing_QC_plot", "figure"),
@@ -299,10 +297,9 @@ def refresh_violin_QC_plot(selected_QC, session_ID):
         return default_return
 
     print("[STATUS] updating violin gene plot")
-    adata = cache_adata(session_ID)
-    if (adata is None):
+    if (adata_cache_exists(session_ID) is False):
         return default_return
 
     # plot function expects list of factors/genes, but for QC
     # we will only show one at a time here - list is required though
-    return plot_expression_violin(adata, [selected_QC], show_points = False)
+    return plot_expression_violin(session_ID, [selected_QC], show_points = False)

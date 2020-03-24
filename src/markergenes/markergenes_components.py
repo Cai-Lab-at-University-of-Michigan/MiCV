@@ -64,12 +64,12 @@ def marker_gene_method_radio():
     m = dbc.RadioItems(
         id="marker_gene_method_radio",
         options=[
+            {'label': 't-test_overestim_var (default)', 'value': 't-test_overestim_var'},
             {'label': 'logreg', 'value': 'logreg'},
             {'label': 't-test', 'value': 't-test'},
-            {'label': 't-test_overestim_var', 'value': 't-test_overestim_var'},
-            {'label': 'wilcoxon', 'value': 'wilcoxon'},
+            {'label': 'wilcoxon', 'value': 'wilcoxon'}
         ],
-        value='logreg'
+        value='t-test_overestim_var'
         )
     return m
 

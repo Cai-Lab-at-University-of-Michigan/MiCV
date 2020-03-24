@@ -5,7 +5,7 @@ import dash_bootstrap_components as dbc
 
 from . import processing_components as cc
 
-demo = True
+demo = False 
 
 def processing_layout():
 	m = dbc.Tab(label='Processing', children=[

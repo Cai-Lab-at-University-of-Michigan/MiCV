@@ -40,7 +40,7 @@ def pseudotime_UMAP_dropdown():
     m = dcc.Dropdown(
         id='pseudotime_calculation_UMAP_dropdown',
         options=[
-            {'label': 'leiden', 'value': 'leiden_n'},
+            {'label': 'leiden', 'value': 'leiden'},
             {'label': "# UMIs", "value": "total_counts"},
             {'label': "# UMIs [ln(1+UMIs)]", "value": "log1p_total_counts"},
             {'label': "# unique genes", "value": "n_genes"},

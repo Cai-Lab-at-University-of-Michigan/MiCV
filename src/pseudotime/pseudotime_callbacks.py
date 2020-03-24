@@ -40,7 +40,7 @@ def refresh_pseudotime_UMAP(pt_btn_clicks, pt_plot_type, session_ID,
         # if there are multiple selected, take the last one
         if not (selected_cells is None):
 
-            pt_selected_cell_IDs = get_cell_intersection(session_ID, adata, [selected_cells])
+            pt_selected_cell_IDs = get_cell_intersection(session_ID, [selected_cells])
                 
         if ((pt_selected_cell_IDs is None) or (len(pt_selected_cell_IDs) != 1)):
             print("[ERROR] please select exactly 1 cell to use as a pseudotime starter cell"
@@ -49,49 +49,49 @@ def refresh_pseudotime_UMAP(pt_btn_clicks, pt_plot_type, session_ID,
         
         adata = do_pseudotime(session_ID, adata, starter_cell_ID)
 
-    # if it's a dropdown menu update - load adata
+    # if it's a dropdown menu update
     elif(button_id == "pseudotime_calculation_UMAP_dropdown"):
         if (pt_plot_type in [0, "", None, []]):
             return default_return
-        else:
-            adata = cache_adata(session_ID)
 
     # do nothing if no buttons pressed
     elif(button_id == "not_triggered"):
         return default_return
     
-    if (adata is None):
+    if (adata_cache_exists(session_ID) is False):
         return default_return
+
 
     # update the plot
     if (pt_plot_type in [0, "", None, []]):
         return default_return
     print("[STATUS] updating plot by: " + str(pt_plot_type))
-    adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
+    
+    obs = cache_adata(session_ID, group="obs")
 
-    if ("pseudotime" in adata.obs):
+    if ("pseudotime" in obs):
         pt_calc_status = "pseudotime calculated"
     else:
         pt_calc_status = ""
 
     if not (selected_cells is None):
-        cells_to_highlight = get_cell_intersection(session_ID, adata, [selected_cells])
+        cells_to_highlight = get_cell_intersection(session_ID, [selected_cells])
     else:
         cells_to_highlight = []
     if (pt_plot_type == "leiden_n"):
-        return plot_UMAP(adata, "leiden", cells_to_highlight), pt_calc_status
+        return plot_UMAP(session_ID, "leiden", cells_to_highlight), pt_calc_status
     elif (pt_plot_type == "pseudotime"):
-        return plot_pseudotime_UMAP(adata, "pseudotime"), pt_calc_status
+        return plot_pseudotime_UMAP(session_ID, "pseudotime"), pt_calc_status
     elif (pt_plot_type == "differentiation potential"):
-        return plot_pseudotime_UMAP(adata, "differentiation_potential"), pt_calc_status
+        return plot_pseudotime_UMAP(session_ID, "differentiation_potential"), pt_calc_status
     elif (pt_plot_type == "total_counts"):
-        return plot_expression_UMAP(adata, "total_counts"), pt_calc_status
+        return plot_expression_UMAP(session_ID, "total_counts"), pt_calc_status
     elif (pt_plot_type == "log1p_total_counts"):
-        return plot_expression_UMAP(adata, "log1p_total_counts"), pt_calc_status
+        return plot_expression_UMAP(session_ID, "log1p_total_counts"), pt_calc_status
     elif (pt_plot_type == "n_genes"):
-        return plot_expression_UMAP(adata, "n_genes"), pt_calc_status
+        return plot_expression_UMAP(session_ID, "n_genes"), pt_calc_status
     elif ("pseudotime_branch_" in pt_plot_type):
-        return plot_pseudotime_UMAP(adata, pt_plot_type), pt_calc_status
+        return plot_pseudotime_UMAP(session_ID, pt_plot_type), pt_calc_status
     else:
         return default_return
 
@@ -112,11 +112,11 @@ def update_pseudotime_dropdown(pt_calc_status, session_ID, pt_calc_dropdown_opti
     if (pt_calc_status in [0, "", None, []]):
         return default_return
 
-    adata = cache_adata(session_ID)
-    if (adata is None):
+    obs = cache_adata(session_ID, group="obs")
+    if (obs is None):
         return default_return
 
-    pt_branch_names = [col for col in adata.obs.columns if 'pseudotime_branch_' in col]
+    pt_branch_names = [col for col in obs.columns if 'pseudotime_branch_' in col]
     value_list = ["pseudotime", "differentiation_potential"] + pt_branch_names
     options_0 = [{"label": i, "value": i} for i in value_list]
     options_1 = [{"label": i, "value": int(i[-1])} for i in pt_branch_names]
