@@ -21,6 +21,10 @@ from plotting.plotting_parameters import *
 def plot_UMAP(session_ID, clustering_plot_type, selected_cell_intersection=[], n_dim=2):
     print("[DEBUG] generating new UMAP plot")
 
+    if (adata_cache_exists(session_ID) is False):
+        print("[ERROR] cache for " + str(session_ID) + "does not exist")
+        return dash.no_update
+
     obs  = cache_adata(session_ID, group="obs")
     obsm = cache_adata(session_ID, group="obsm")
 
@@ -116,10 +120,15 @@ def plot_UMAP(session_ID, clustering_plot_type, selected_cell_intersection=[], n
         }
 
 def plot_pseudotime_UMAP(session_ID, pt_plot_type, n_dim=2):
+    if (adata_cache_exists(session_ID) is False):
+        return dash.no_update
 
     obs  = cache_adata(session_ID, group="obs")
     obsm = cache_adata(session_ID, group="obsm")
 
+    if not (pt_plot_type in obs):
+        return dash.no_update
+    
     # validate that there is a 3D projection available if that was requested
     if (("X_umap_3D" in obsm.keys()) and (n_dim == 3)):
         coords = pd.DataFrame(obsm["X_umap_3D"], index=obs.index)
@@ -179,6 +188,9 @@ def plot_pseudotime_UMAP(session_ID, pt_plot_type, n_dim=2):
 
 def plot_expression_UMAP(session_ID, selected_genes, multi="standard", n_dim=2):
     
+    if (adata_cache_exists(session_ID) is False):
+        return dash.no_update
+
     adata  = cache_adata(session_ID)
     obsm   = adata.obsm
     obs    = adata.obs
@@ -376,6 +388,9 @@ def plot_expression_trend(gene_trends, selected_genes, selected_branch,
     }
 
 def plot_expression_violin(session_ID, selected_genes, show_points = "all"):
+    if (adata_cache_exists(session_ID) is False):
+        return dash.no_update
+
     adata  = cache_adata(session_ID)
     var    = adata.var
     obs    = adata.obs
@@ -385,10 +400,9 @@ def plot_expression_violin(session_ID, selected_genes, show_points = "all"):
         if not ((i in var.index) or (i in obs)):
             print("[DEBUG] gene " + str(i) + " not in var index; skipping")
             continue
-        d = adata.obs_vector(i)
         traces.append(
             go.Violin(
-                y=d,
+                y=adata.obs_vector(i),
                 text="Cell ID: " + obs["cell_ID"],
                 opacity=0.7,
                 box_visible=True,
@@ -417,8 +431,8 @@ def plot_expression_violin(session_ID, selected_genes, show_points = "all"):
         )
     }
 
-def plot_marker_genes(adata, obs_column, groups_to_rank):
-    sc.settings.figdir = save_analysis_path
+def plot_marker_genes(session_ID, adata, obs_column, groups_to_rank):
+    sc.settings.figdir = save_analysis_path + str(session_ID) + "/"
     print("[STATUS] identifying marker genes")
     image_filename = "dotplot.png"
     
@@ -432,7 +446,7 @@ def plot_marker_genes(adata, obs_column, groups_to_rank):
 			                                 groups=groups_to_rank, key="rank_genes_groups", 
 			                                 dendrogram=False, groupby=obs_column, show=False,
 			                                 save=".png")
-    encoded_image = base64.b64encode(open(save_analysis_path + image_filename, 'rb').read())
+    encoded_image = base64.b64encode(open(save_analysis_path + str(session_ID) + "/" + image_filename, 'rb').read())
     return html.Img(src='data:image/png;base64,{}'.format(encoded_image.decode()),
                     width=1000)
 

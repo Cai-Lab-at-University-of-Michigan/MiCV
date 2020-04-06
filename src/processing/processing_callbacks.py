@@ -57,7 +57,8 @@ def parse_uploaded_data(contents, filename, session_ID):
             os.makedirs(save_dir)
         with open(save_dir + "adata_cache.h5ad", "wb") as f:
             f.write(decoded)
-        adata = cache_adata(session_ID)
+        adata = sc.read_h5ad(save_dir + "adata_cache.h5ad")
+        #adata = cache_adata(session_ID, adata)
         adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
         adata.var_names_make_unique()
         cache_adata(session_ID, adata)

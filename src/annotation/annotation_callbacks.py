@@ -49,9 +49,9 @@ def refresh_clustering_plot(active_tab,
             if ((obs is None) or (var is None)):
                 return default_return
             else:
-                #adata.obs["leiden_n"] = pd.to_numeric(adata.obs["leiden"])
-                #adata.obs["cell_ID"] = adata.obs.index
-                adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
+                obs["leiden_n"] = pd.to_numeric(obs["leiden"])
+                obs["cell_ID"] = obs.index
+                obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(obs.index))))
                 cache_adata(session_ID, obs, group="obs")
 
                 gene_trends = cache_gene_trends(session_ID)  
@@ -96,7 +96,7 @@ def refresh_clustering_plot(active_tab,
                              pt_min, pt_max)
     
             obs.loc[selected_cells, clustering_group] = new_cluster_ID
-            
+            obs[clustering_group] = obs[clustering_group].astype('category')
             cache_adata(session_ID, obs, group="obs")
 
     elif(button_id in ["Pseudotime_UMAP_plot",
@@ -126,9 +126,9 @@ def refresh_clustering_plot(active_tab,
         return default_return
 
     # on first run with this dataset, add columns for user cluster annotations
-    for i in ["user_" + str(j) for j in range(0, 6)]:
-        if not (i in obs.columns):
-            obs[i] = ["unnassigned" for j in obs.index.to_list()]
+    #for i in ["user_" + str(j) for j in range(0, 6)]:
+    #    if not (i in obs.columns):
+    #        obs[i] = ["0" for j in obs.index.to_list()]
 
     # figure out which cells need to be selected, based on other graphs
     violin_selected = get_violin_intersection(session_ID, violin_selected)

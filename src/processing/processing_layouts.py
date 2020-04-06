@@ -205,7 +205,7 @@ def processing_layout():
 						        id="clustering_resolution_slider",
 						        min=0,
 						        max=5,
-						        step=0.1,
+						        step=0.05,
 						        value=0.5,
 								marks={
 						        	0.1: "0.1",

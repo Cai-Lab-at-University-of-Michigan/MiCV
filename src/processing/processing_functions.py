@@ -46,7 +46,6 @@ def do_PCA(session_ID, adata, n_comps=50, random_state=0):
     print("[STATUS] doing PCA")
     sc.tl.pca(adata, svd_solver="arpack", 
               n_comps=n_comps, random_state=random_state)
-    #new_adata = adata.copy()
 
     cache_adata(session_ID, adata)
     return adata
@@ -57,21 +56,20 @@ def do_neighborhood_graph(session_ID, adata, method="standard",
     if ((method == "standard") or (not ("batch" in adata.obs))):
         sc.pp.neighbors(adata, n_neighbors=n_neighbors, random_state=random_state)
     elif (method == "bbknn"):
-        sc.external.pp.bbknn(adata, batch_key="batch", approx=True)
-
-    #new_adata = adata.copy()
+        sc.external.pp.bbknn(adata, batch_key="batch", approx=True, trim=0)
 
     cache_adata(session_ID, adata)
     return adata
 
 def do_UMAP(session_ID, adata, n_dim_proj=2, random_state=0):
-    print("[STATUS] doing a UMAP projection")
+    print("[STATUS] doing a 2D UMAP projection")
     sc.tl.umap(adata, random_state=random_state, 
-                           init_pos="spectral", n_components=2, 
-                           copy=False)
+               init_pos="spectral", n_components=2, 
+               copy=False, maxiter=None)
+    print("[STATUS] doing a 3D UMAP projection")
     adata_3D = sc.tl.umap(adata, random_state=random_state, 
-                           init_pos="spectral", n_components=3, 
-                           copy=True)
+                          init_pos="spectral", n_components=3, 
+                          copy=True, maxiter=None)
     adata.obsm["X_umap_3D"] = adata_3D.obsm["X_umap"]
     cache_adata(session_ID, adata)
     return adata
@@ -80,8 +78,7 @@ def do_clustering(session_ID, adata, resolution=0.5,
                   random_state=0, copy=True):
     print("[STATUS] performing clustering")
     sc.tl.leiden(adata, resolution=resolution, 
-                 random_state=random_state)
-    #new_adata = adata.copy()
+                 random_state=random_state, n_iterations=3)
     adata.obs["leiden_n"] = pd.to_numeric(adata.obs["leiden"])
 
     cache_adata(session_ID, adata)

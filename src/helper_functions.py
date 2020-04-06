@@ -18,6 +18,8 @@ from plotting.multi_color_scale import MultiColorScale
 save_analysis_path = "/srv/www/MiCV/cache/"
 selected_datasets_path = "/srv/www/MiCV/selected_datasets/"
 
+lock_timeout = 60
+
 use_zarr = True
 
 def generate_adata_from_10X(session_ID, data_type="10X_mtx"):
@@ -48,6 +50,7 @@ def load_selected_dataset(session_ID, dataset_key):
         return None
 
     adata = sc.read_h5ad(filename + ".h5ad")
+    adata = cache_adata(session_ID, adata)
     return adata
 
 def cache_adata(session_ID, adata=None, group=None):
@@ -57,9 +60,9 @@ def cache_adata(session_ID, adata=None, group=None):
     
     filename = save_dir + "adata_cache"
     lock_filename = save_dir + "adata.lock"
-    lock = FileLock(lock_filename, timeout=20)
+    lock = FileLock(lock_filename, timeout=lock_timeout)
     
-    print("[DEBUG] filename = " + str(filename))
+    #print("[DEBUG] filename = " + str(filename))
     
     if (use_zarr is False):
         if (adata is None):
@@ -86,7 +89,6 @@ def cache_adata(session_ID, adata=None, group=None):
                 return adata
     
     elif (use_zarr is True):
-        print("[DEBUG] using zarr for caching")
         zarr_cache_dir = filename  + ".zarr"
         attribute_groups = ["obs", "var", "obsm", "varm", "obsp", "varp", "layers", "X", "uns", "raw"]
 
@@ -111,29 +113,36 @@ def cache_adata(session_ID, adata=None, group=None):
         else: # then -> write it to the store
             with lock:
                 if (group in attribute_groups): # then -> write only that part of the object (fast)
-                    store = zarr.open(zarr_cache_dir, mode='w')
+                    store = zarr.open(zarr_cache_dir, mode='r+')
                     write_attribute(store, group, adata) # here adata is actually just a subset of adata
-                else: 
+                else:
+                    if not ("leiden_n" in adata.obs):
+                        if ("leiden" in adata.obs):
+                            adata.obs["leiden_n"] = pd.to_numeric(adata.obs["leiden"])
+                    if not ("cell_ID" in adata.obs):
+                        adata.obs["cell_ID"] = adata.obs.index
+                    if not ("cell_ID" in adata.obs):
+                        adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
+                    for i in ["user_" + str(j) for j in range(0, 6)]:
+                        if not (i in adata.obs.columns):
+                            adata.obs[i] = ["0" for k in adata.obs.index.to_list()]
                     adata.write_zarr(zarr_cache_dir)
                 return adata
 
 def adata_cache_exists(session_ID):
     save_dir = save_analysis_path  + str(session_ID) + "/"
-    if not (os.path.isdir(save_dir)):
-        return False
-    
     filename = save_dir + "adata_cache"
-    print("[DEBUG] filename = " + str(filename))
-    
+    zarr_cache_dir = filename  + ".zarr"
+        
     if (use_zarr is True):
-        print("[DEBUG] using zarr for caching")
-        zarr_cache_dir = filename  + ".zarr"
         if (os.path.isdir(zarr_cache_dir) is True):
-            z = zarr.open_group(zarr_cache_dir, mode="r")
-            if not (("obs" in z) and ("var" in z) and ("X" in z)):
-                return False
-            else:
-                return True
+            return True
+            #z = zarr.open_group(zarr_cache_dir, mode="r")
+            #if not (("obs" in z) and ("var" in z) and ("X" in z)):
+            #    return False
+            #else:
+            #    return True
+        return False
 
 
 def cache_gene_trends(session_ID, gene_trends=None):
@@ -141,17 +150,17 @@ def cache_gene_trends(session_ID, gene_trends=None):
     lock_filename = filename + ".lock"
     lock = FileLock(lock_filename, timeout=20)
     
-    with lock:
-        print("[DEBUG] filename = " + str(filename))    
-        if (gene_trends is None):
-            if (os.path.isfile(filename) is True):
-                with open(filename, "rb") as f:
-                    gene_trends = pickle.load(f)
-            else:
-                print("[ERROR] gene trends cache does not exist at: " + str(filename))
-                gene_trends = []
-            return gene_trends
+    print("[DEBUG] filename = " + str(filename))    
+    if (gene_trends is None):
+        if (os.path.isfile(filename) is True):
+            with open(filename, "rb") as f:
+                gene_trends = pickle.load(f)
         else:
+            print("[ERROR] gene trends cache does not exist at: " + str(filename))
+            gene_trends = []
+        return gene_trends
+    else:
+        with lock:
             with open(filename, "wb") as f:
                 pickle.dump(gene_trends, f)
             return gene_trends
@@ -324,3 +333,18 @@ def remove_old_cache(n_days=1.5):
                 except Exception as e:
                     print("[ERROR] " + str(e))
                     pass
+
+def get_obs_vector(session_ID, var):
+    if (use_zarr is True):
+        zarr_cache_dir = save_dir + "adata_cache" + ".zarr"
+        if (os.path.isdir(zarr_cache_dir) is True):
+            store = zarr.open(zarr_cache_dir, mode='r')
+
+            if (var in store.obs.keys()):
+                ret = list(store.obs[var])
+            else:
+                idx = list(store.var["var_names"]).index(var)
+                print("[DEBUG] idx of " + str(var) + ": " + str(idx))
+                ret = store.X[idx]
+                print("[DEBUG] var: " + str(var))
+            return ret

@@ -111,4 +111,4 @@ def refresh_marker_gene_plot(n_clicks, obs_column, groups_to_rank,
     
     adata = cache_adata(session_ID)
     adata = identify_marker_genes(adata, obs_column, groups_to_rank, method)
-    return plot_marker_genes(adata, obs_column, groups_to_rank)
+    return plot_marker_genes(session_ID, adata, obs_column, groups_to_rank)
