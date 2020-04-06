@@ -144,7 +144,7 @@ def adata_cache_exists(session_ID):
             #    return True
         return False
 
-
+'''
 def cache_gene_trends(session_ID, gene_trends=None):
     filename = save_analysis_path + str(session_ID) + "/gene_trends_cache.pickle"
     lock_filename = filename + ".lock"
@@ -164,6 +164,7 @@ def cache_gene_trends(session_ID, gene_trends=None):
             with open(filename, "wb") as f:
                 pickle.dump(gene_trends, f)
             return gene_trends
+'''
 
 def cache_gene_list(session_ID, gene_list=None):
     filename = save_analysis_path + str(session_ID) + "/gene_list_cache.pickle"
@@ -348,3 +349,43 @@ def get_obs_vector(session_ID, var):
                 ret = store.X[idx]
                 print("[DEBUG] var: " + str(var))
             return ret
+
+def cache_pseudotime_results(session_ID, pr_res=None):
+    filename = save_analysis_path + str(session_ID) + "/pr_res_cache.pickle"
+    lock_filename = filename + ".lock"
+    lock = FileLock(lock_filename, timeout=20)
+    
+    print("[DEBUG] filename = " + str(filename))
+    if (pr_res is None):
+        if (os.path.isfile(filename) is True):
+            with open(filename, "rb") as f:
+                pr_res = pickle.load(f)
+        else:
+            print("[ERROR] pseudotime results cache does not exist at: " + str(filename))
+            pr_res = None
+        return pr_res
+    else:
+        with lock:
+            with open(filename, "wb") as f:
+                pickle.dump(pr_res, f)
+            return pr_res
+
+def cache_imputed_df(session_ID, imp_df=None):
+    filename = save_analysis_path + str(session_ID) + "/imp_df_cache.pickle"
+    lock_filename = filename + ".lock"
+    lock = FileLock(lock_filename, timeout=20)
+    
+    print("[DEBUG] filename = " + str(filename))
+    if (imp_df is None):
+        if (os.path.isfile(filename) is True):
+            with open(filename, "rb") as f:
+                imp_df = pickle.load(f)
+        else:
+            print("[ERROR] imputed df cache does not exist at: " + str(filename))
+            imp_df = None
+        return imp_df
+    else:
+        with lock:
+            with open(filename, "wb") as f:
+                pickle.dump(imp_df, f)
+            return imp_df

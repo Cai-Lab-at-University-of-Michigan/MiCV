@@ -2,6 +2,8 @@ import dash
 from dash.dependencies import Input, Output, State
 import dash_html_components as html
 
+from pseudotime.pseudotime_functions import calculate_gene_trends
+
 from helper_functions import *
 from plotting.plotting_functions import *
 from app import app
@@ -124,11 +126,6 @@ def refresh_clustering_plot(active_tab,
     if ((obs is None)
     or not (clustering_plot_type in obs)):
         return default_return
-
-    # on first run with this dataset, add columns for user cluster annotations
-    #for i in ["user_" + str(j) for j in range(0, 6)]:
-    #    if not (i in obs.columns):
-    #        obs[i] = ["0" for j in obs.index.to_list()]
 
     # figure out which cells need to be selected, based on other graphs
     violin_selected = get_violin_intersection(session_ID, violin_selected)
@@ -332,13 +329,15 @@ def refresh_pseudotime_gene_plot(selected_genes, relative, branch_n, session_ID)
     ret = default_return
 
     print("[STATUS] plotting gene pseudotime expression for: " + str(selected_genes))
-
-    if not(branch_n in ["", 0, None, []]):
-        gene_trends = cache_gene_trends(session_ID)
+    print("[DEBUG] branch_n: " + str(branch_n))
+    if not(branch_n in ["", None, []]):
+        #gene_trends = cache_gene_trends(session_ID)
+        print("[STATUS] calculating gene pseudotime expression for: " + str(selected_genes))
+        gene_trends = calculate_gene_trends(session_ID, selected_genes, branch_n)
         if not (gene_trends in ["", 0, None, []]):
-            branches = list(gene_trends.keys()) #branch names (cell_IDs of terminal cells)
+            branch = list(gene_trends.keys())[0] #branch names (cell_IDs of terminal cells)
             ret[0] = plot_expression_trend(gene_trends, selected_genes, 
-                                        selected_branch=branches[branch_n], 
+                                        selected_branch=branch, 
                                         relative=relative)
     
     print("[STATUS] updating violin gene plot")
