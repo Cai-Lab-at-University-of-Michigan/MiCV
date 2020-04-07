@@ -10,6 +10,8 @@ import numpy as np
 import anndata as ad
 import seaborn as sns
 
+from scipy.stats import gaussian_kde
+
 import base64
 
 from helper_functions import *
@@ -396,21 +398,46 @@ def plot_expression_violin(session_ID, selected_genes, show_points = "all"):
     obs    = adata.obs
 
     traces = []
+    
+    x_pos  = 1
+    n_traces = len(selected_genes)
+    
     for i in selected_genes:
         if not ((i in var.index) or (i in obs)):
             print("[DEBUG] gene " + str(i) + " not in var index; skipping")
             continue
-        traces.append(
-            go.Violin(
-                y=adata.obs_vector(i),
-                text="Cell ID: " + obs["cell_ID"],
-                opacity=0.7,
-                box_visible=True,
-                meanline_visible=True,
-                points=show_points,
-                name=(str(i))
+        if (show_points == False):
+            traces.append(
+                go.Violin(
+                    y=adata.obs_vector(i),
+                    text="Cell ID: " + obs["cell_ID"],
+                    opacity=0.7,
+                    box_visible=True,
+                    meanline_visible=True,
+                    points=False,
+                    name=(str(i))
+                )
             )
-        )
+            x_pos += 1
+        
+        elif (show_points == "all"):
+            #kernel = gaussian_kde(adata.obs_vector(i))
+            jittered_x = x_pos + 0.1 * np.random.standard_normal(len(adata.obs_vector(i)))
+
+            traces.append(
+                go.Scattergl(
+                    x=jittered_x,
+                    y=adata.obs_vector(i),
+                    text="Cell ID: " + obs["cell_ID"],
+                    mode="markers",
+                    opacity=0.7,
+                    marker={
+                        'size': point_size_2d,
+                    },
+                    name=(str(i)),
+                )
+            )
+            x_pos += 1
 
     if (traces in [[], None]):
         print("[DEBUG] no traces added to violin plot")
@@ -452,12 +479,17 @@ def plot_marker_genes(session_ID, adata, obs_column, groups_to_rank):
 
 def get_mixed_expression_value(e0, e1=None, e2=None, session_ID=None):
     m = 1
-    n_levels = 16
-
+    
     def rescale_expression(a, m):
         a = np.asarray(a)
         a = m * (a - np.min(a))/np.ptp(a)
         return a
+
+    def expression_to_rgb(e):
+        ret = np.column_stack((e[:,1]+e[:,2],
+                               e[:,0]+e[:,2],
+                               e[:,0]+e[:,1]))
+        return ret
 
     e0 = rescale_expression(e0, m)
 
@@ -471,16 +503,6 @@ def get_mixed_expression_value(e0, e1=None, e2=None, session_ID=None):
         e2 = rescale_expression(e2, m)
 
     colors = np.column_stack((e0,e1,e2))
-    #print("[DEBUG] colors: " + str(colors[0:5]))
+    ret = expression_to_rgb(colors)
 
-        
-    bins = np.linspace(0, m, n_levels)
-    scale = cache_multicolor_scale(session_ID)
-
-    inds = np.digitize(colors, bins, right=True)
-    for i in range(0, len(colors)):
-        for j in range(0, len(colors[i])):
-            colors[i,j] = bins[min(inds[i,j], n_levels - 1)]
-
-    ret = [scale.calculate_hex_color(c) for c in colors]
     return ret

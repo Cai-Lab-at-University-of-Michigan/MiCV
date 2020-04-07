@@ -65,7 +65,20 @@ def annotation_layout():
 					    		cc.n_dims_proj_expression_radio()
 					    	], width=3),
 						]),
-					    dcc.Loading(children=[cc.plot_expression_UMAP()]),
+					    dbc.Row(children=[
+					    	dbc.Col(children=[
+					    		dcc.Loading(children=[cc.plot_expression_UMAP()]),
+					    	], width=9),
+					    	dbc.Col(children=[
+					    		html.Img(src="assets/color_triangle_legend.png", 
+					    				 hidden=True,
+					    				 id="mixed_expression_legend_image",
+					    				 style={"display": "flex",
+												"justify-content": "center",
+												"align-items": "center",
+												"width": "90%"})
+					    	], width=3)
+					    ]),
 					    html.H5(children=[cc.gene_UMAP_count()]),
 					    html.H3(children="Gene information (fly only)"),
 					    cc.gene_data_table()

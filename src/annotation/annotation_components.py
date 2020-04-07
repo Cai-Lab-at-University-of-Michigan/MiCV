@@ -122,11 +122,8 @@ def plot_expression_UMAP():
     )
     return g
 
-def plot_gene_violin():
-    g = dcc.Graph(
-        id='violin_gene_plot',
-        figure={
-            'data': [
+
+'''
                 go.Violin(
                     y=None,
                     text=str("NULL"),
@@ -135,6 +132,24 @@ def plot_gene_violin():
                     box_visible=True,
                     meanline_visible=True,
                     points="all"
+                )
+'''
+def plot_gene_violin():
+
+    g = dcc.Graph(
+        id='violin_gene_plot',
+        figure={
+            'data': [
+                go.Scattergl(
+                    x=None,
+                    y=None,
+                    text=str("NULL"),
+                    mode='markers',
+                    opacity=0.7,
+                    marker={
+                        "line_width": 1
+                    },
+                    name=str("NULL")
                 )
             ],
             'layout': go.Layout(

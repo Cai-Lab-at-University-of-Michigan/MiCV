@@ -17,9 +17,9 @@ def do_pseudotime(session_ID, adata, starter_cell_ID=None):
     start_cell = starter_cell_ID
     
     pr_res = palantir.core.run_palantir(ms_data, start_cell, 
-                                        terminal_states=None, knn=20, 
+                                        terminal_states=None,
                                         num_waypoints=500, 
-                                        scale_components=False, n_jobs=4)
+                                        scale_components=True, n_jobs=1)
     adata.obs["pseudotime"] = pr_res.pseudotime[adata.obs.index]
     adata.obs["differentiation_potential"] = pr_res.entropy[adata.obs.index]
     
@@ -28,18 +28,10 @@ def do_pseudotime(session_ID, adata, starter_cell_ID=None):
                    axis=1, inplace=True)
     for i, branch in enumerate(pr_res.branch_probs.columns):
         adata.obs["pseudotime_branch_" + str(i)] = pr_res.branch_probs.loc[adata.obs.index, branch]
-    #genes = adata.var[adata.var["highly_variable"]].index.tolist()
-    #genes = adata.var.index.tolist()
-
-    #print("[STATUS] computing all gene trends (this will take a while)")
-    #gene_trends = palantir.presults.compute_gene_trends(pr_res, 
-    #                                                    imp_df.loc[:, genes],
-    #                                                    n_jobs=4)
 
     cache_adata(session_ID, adata)
     cache_pseudotime_results(session_ID, pr_res)
     cache_imputed_df(session_ID, imp_df)
-    #cache_gene_trends(session_ID, gene_trends)
     return adata
 
 def calculate_gene_trends(session_ID, list_of_genes, branch_ID):

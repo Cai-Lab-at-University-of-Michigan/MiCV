@@ -252,7 +252,8 @@ def update_mixed_gene_dropdown(active_tab, session_ID):
     return options
 
 @app.callback(
-    Output("expression_UMAP_plot", "figure"),
+    [Output("expression_UMAP_plot", "figure"),
+     Output("mixed_expression_legend_image", "hidden")],
     [Input("single_gene_dropdown", "value"),
      Input("mixed_gene_dropdown", "value"),
      Input("single_gene_expression_radio", "value"),
@@ -261,24 +262,28 @@ def update_mixed_gene_dropdown(active_tab, session_ID):
 )
 def refresh_expression_UMAP_plot(selected_gene, selected_mixed_genes,
                                  multi, n_dims_proj, session_ID):
-    default_return = dash.no_update
+    default_return = [dash.no_update, dash.no_update]
 
     if (multi == "standard"):
         if (selected_gene in [None, 0, []]):
             return default_return
         else:
             plot_these_genes = selected_gene
+            hidden = True
+
     else:
         if (selected_mixed_genes in [None, 0, []]):
             return default_return
         else:
             plot_these_genes = selected_mixed_genes
+            hidden = False
+
 
     if (adata_cache_exists(session_ID) is False):
         return default_return
 
     print("[STATUS] updating expression UMAP plot")
-    return plot_expression_UMAP(session_ID, plot_these_genes, multi, n_dim=n_dims_proj)
+    return [plot_expression_UMAP(session_ID, plot_these_genes, multi, n_dim=n_dims_proj), hidden]
 
 @app.callback(
     Output("gene_UMAP_count", "children"),
