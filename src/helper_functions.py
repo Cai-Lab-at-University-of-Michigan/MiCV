@@ -389,3 +389,17 @@ def cache_imputed_df(session_ID, imp_df=None):
             with open(filename, "wb") as f:
                 pickle.dump(imp_df, f)
             return imp_df
+
+def generate_marker_gene_table(session_ID):
+    save_dir = save_analysis_path  + str(session_ID) + "/"
+    uns = cache_adata(session_ID, group="uns")
+    marker_genes = pd.DataFrame.from_records(uns["rank_genes_groups"]["names"])
+    marker_genes.to_csv(save_dir + "marker_genes.csv")
+
+def marker_genes_table_exists(session_ID):
+    save_dir = save_analysis_path  + str(session_ID) + "/"
+    filename = save_dir + "marker_genes.csv"
+    print("[DEBUG] marker genes filename: " + str(filename))
+    if (os.path.isfile(filename) is True):
+        return True
+    return False

@@ -3,6 +3,11 @@ import pandas as pd
 import dash
 from dash.dependencies import Input, Output, State
 
+from flask import send_file
+
+import os
+import io
+
 from . markergenes_functions import identify_marker_genes
 
 from plotting.plotting_functions import *
@@ -111,4 +116,42 @@ def refresh_marker_gene_plot(n_clicks, obs_column, groups_to_rank,
     
     adata = cache_adata(session_ID)
     adata = identify_marker_genes(adata, obs_column, groups_to_rank, method)
+    cache_adata(session_ID, adata.uns, group="uns")
+    generate_marker_gene_table(session_ID)
     return plot_marker_genes(session_ID, adata, obs_column, groups_to_rank)
+
+@app.callback(
+    [Output("download_marker_genes_button", "disabled"),
+     Output("download_marker_genes_link", "href")],
+    [Input("main_tabs", "active_tab"),
+     Input("recalculate_marker_genes", "n_clicks")],
+    [State("session-id", "children")]
+)
+def enabled_marker_genes_download_button(active_tab, n_clicks, session_ID):
+    default_return = [True, dash.no_update] #disabled
+    
+    if ((active_tab != "markergenes_tab")
+    or  (n_clicks in [0, None, "", []])):
+        return default_return
+    
+    if not (marker_genes_table_exists(session_ID)):
+        return [False, "/download/" + session_ID + "/marker_genes"]
+    else:
+        return default_return
+
+@app.server.route('/download/<path:path>/marker_genes')
+def serve_marker_genes_table_csv(path):
+    print("[STATUS] preparing to serve marker genes table in csv format")
+    f = save_analysis_path + path + "/marker_genes.csv"
+    if (os.path.isfile(f)):
+        print("[DEBUG] file " + f + " found - serving")
+        with open(f, "rb") as b:
+            return send_file(io.BytesIO(b.read()), 
+                             as_attachment=True,
+                             attachment_filename="marker_genes.csv",
+                             mimetype="application/octet-stream", cache_timeout=3
+                    )
+    else:
+        print("[ERROR] file " + f + " not available for download")
+        return ("Error - file not generated yet. Go back in your browser," 
+             + "upload your raw data, and idenfity marker genes before downloading.")

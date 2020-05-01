@@ -91,3 +91,12 @@ def n_dims_proj_markergenes_radio():
         value=2
         )
     return m
+
+def marker_genes_export_button():
+    m = html.A(dbc.Button("Download marker gene table", 
+               id="download_marker_genes_button",
+               disabled=True),
+               id="download_marker_genes_link",
+               href=""
+        )
+    return m

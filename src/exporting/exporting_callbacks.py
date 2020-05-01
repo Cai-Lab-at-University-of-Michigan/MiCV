@@ -24,8 +24,7 @@ def enabled_export_button(active_tab, session_ID):
     if (active_tab != "exporting_tab"):
         return default_return
     
-    adata = cache_adata(session_ID)
-    if (adata is None):
+    if not (adata_cache_exists(session_ID)):
         return default_return
     else:
         return [False, "/download/" + session_ID + "/h5ad"]
@@ -101,7 +100,7 @@ def update_exporting_obs_value_dropdown(obs_column, session_ID):
      State("exporting_obs_column_dropdown", "value"),
      State("exporting_obs_value_dropdown", "value")]
 )
-def obs_subset_anndatata_h5ad(n_clicks, session_ID,
+def obs_subset_anndata_h5ad(n_clicks, session_ID,
                               obs_column, obs_values):
     default_return = [True, dash.no_update]
 

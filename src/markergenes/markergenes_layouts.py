@@ -44,7 +44,10 @@ def markergenes_layout():
 						dbc.Button("Recalculate marker genes", 
 					    			id="recalculate_marker_genes"),
 						dcc.Loading(children=[cc.marker_gene_plot()])
-					]),
+					], width=10),
+					dbc.Col(children=[
+						cc.marker_genes_export_button()
+					], width=2)
 				])
 			]) # end marker gene tab
 	return m
