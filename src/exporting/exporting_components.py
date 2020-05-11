@@ -11,7 +11,7 @@ def exporting_obs_column_dropdown():
         multi=False,
         searchable=True,
         placeholder="obs column selection"
-        )  
+        )
     return m
 
 def exporting_obs_value_dropdown():

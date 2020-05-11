@@ -20,6 +20,7 @@ from markergenes import markergenes_callbacks
 from pseudotime import pseudotime_callbacks
 from annotation import annotation_callbacks
 from exporting import exporting_callbacks
+from status import status_callbacks
 
 @app.callback(Output('page-content', 'children'),
               [Input('url', 'pathname')])

@@ -339,11 +339,9 @@ def refresh_pseudotime_gene_plot(selected_genes, relative, branch_n, session_ID)
         #gene_trends = cache_gene_trends(session_ID)
         print("[STATUS] calculating gene pseudotime expression for: " + str(selected_genes))
         gene_trends = calculate_gene_trends(session_ID, selected_genes, branch_n)
-        if not (gene_trends in ["", 0, None, []]):
-            branch = list(gene_trends.keys())[0] #branch names (cell_IDs of terminal cells)
-            ret[0] = plot_expression_trend(gene_trends, selected_genes, 
-                                        selected_branch=branch, 
-                                        relative=relative)
+        ret[0] = plot_expression_trend(gene_trends, selected_genes, 
+                                       selected_branch=branch_n, 
+                                       relative=relative)
     
     print("[STATUS] updating violin gene plot")
     ret[1] = plot_expression_violin(session_ID, selected_genes)

@@ -8,6 +8,7 @@ import io
 
 from helper_functions import *
 from plotting.plotting_functions import *
+from status.status_functions import *
 from app import app
 
 from . processing_functions import *
@@ -46,6 +47,7 @@ def parse_uploaded_data(contents, filename, session_ID):
     if (filename is None):
         return default_return
 
+    n_steps = 3
     print("[STATUS] parsing data upload")
     
     content_type, content_string = contents.split(',')
@@ -57,15 +59,21 @@ def parse_uploaded_data(contents, filename, session_ID):
             os.makedirs(save_dir)
         with open(save_dir + "adata_cache.h5ad", "wb") as f:
             f.write(decoded)
+        cache_progress(session_ID, progress=int(1/n_steps * 100))
+
         adata = sc.read_h5ad(save_dir + "adata_cache.h5ad")
         #adata = cache_adata(session_ID, adata)
         adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
         adata.var_names_make_unique()
         cache_adata(session_ID, adata)
+        cache_progress(session_ID, progress=int(2/n_steps * 100))
+
         gene_list = adata.var.index.tolist()
         gene_list = [str(x) for x in gene_list]
         gene_list = list(sorted(gene_list, key=str.lower))
         cache_gene_list(session_ID, gene_list)
+        cache_progress(session_ID, progress=int(3/n_steps * 100))
+        cache_history(session_ID, history="Anndata object: " + str(filename) + " loaded successfully")
 
         return "Anndata object uploaded successfully"
 
@@ -77,6 +85,8 @@ def parse_uploaded_data(contents, filename, session_ID):
         decoded = base64.b64decode(content_string)
         data = zf.ZipFile(io.BytesIO(decoded), mode="r")
         data.extractall(path=save_dir)
+        cache_progress(session_ID, progress=int(1/n_steps * 100))
+
 
         adata = generate_adata_from_10X(session_ID)
         if (adata is None):
@@ -84,11 +94,16 @@ def parse_uploaded_data(contents, filename, session_ID):
         adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
         adata.var_names_make_unique()
         cache_adata(session_ID, adata)
+        cache_progress(session_ID, progress=int(2/n_steps * 100))
+
 
         gene_list = adata.var.index.tolist()
         gene_list = [str(x) for x in gene_list]
         gene_list = list(sorted(gene_list, key=str.lower))
         cache_gene_list(session_ID, gene_list)
+        cache_progress(session_ID, progress=int(3/n_steps * 100))
+        cache_history(session_ID, history="10X data: " + str(filename) + " loaded successfully")
+
 
         return "Raw 10X data uploaded successfully"
 
@@ -117,6 +132,7 @@ def parse_selected_dataset(btn_clicks, dataset_key, session_ID):
     if (dataset_key in [0, "", None, []]):
         return default_return
 
+    n_steps = 2
     adata = load_selected_dataset(session_ID, dataset_key)
     if (adata is None):
         print("[ERROR] selected dataset not found; key: " + str(dataset_key))
@@ -124,12 +140,15 @@ def parse_selected_dataset(btn_clicks, dataset_key, session_ID):
     else:
         adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
         cache_adata(session_ID, adata)
-        if (adata is None):
-            return default_return
+        cache_progress(session_ID, progress=int(1/n_steps * 100))
+
         gene_list = adata.var.index.tolist()
         gene_list = [str(x) for x in gene_list]
         gene_list = list(sorted(gene_list, key=str.lower))
         cache_gene_list(session_ID, gene_list)
+        cache_progress(session_ID, progress=int(2/n_steps * 100))
+        cache_history(session_ID, history="Curated dataset loaded")
+
         return "Dataset loaded"
 
 @app.callback(
@@ -211,47 +230,73 @@ def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
     if  (button_id == "refresh_clustering_button"):
         if (clust_btn_clicks in [None, 0]):
             return default_return
+        
+        n_steps = 2
         adata = cache_adata(session_ID)
         if (adata is None):
             return default_return
+        cache_progress(session_ID, progress=int(1/n_steps * 100))
+
         adata = do_clustering(session_ID, adata, resolution=resolution)
-    
+        cache_progress(session_ID, progress=int(2/n_steps * 100))
+
     elif(button_id == "refresh_projection_button"):
         if (proj_btn_clicks in [None, 0]):
             return default_return
         
+        n_steps = 4
         adata = cache_adata(session_ID)
         if (adata is None):
             return default_return
-        
+        cache_progress(session_ID, progress=int(1/n_steps * 100))
+
         adata, = do_PCA(session_ID, adata, n_comps=n_comps, 
                         random_state=random_state),   
+        cache_progress(session_ID, progress=int(2/n_steps * 100))
+
         adata = do_neighborhood_graph(session_ID, adata, 
                                       n_neighbors=n_neighbors, 
                                       random_state=random_state,
                                       method=neighborhood_method)
+        cache_progress(session_ID, progress=int(3/n_steps * 100))
+        
         adata = do_UMAP(session_ID, adata, random_state=random_state)
-    
+        cache_progress(session_ID, progress=int(4/n_steps * 100))
+
     elif(button_id == "refresh_all_button"):
         print("[DEBUG] refresh_all_button clicked")
         if (all_btn_clicks in [None, 0]):
             return default_return
+
+        n_steps = 6
         adata = cache_adata(session_ID)
         if (adata is None):
             return default_return
+        cache_progress(session_ID, progress=int(1/n_steps * 100))
+
         print("[STATUS] refreshing everything")   
         adata = preprocess_data(session_ID, adata, min_cells=min_cells,
                                 min_genes=min_max_genes[0], 
                                 max_genes=min_max_genes[1], 
                                 target_sum=target_sum, flavor=flavor, 
                                 n_top_genes=n_top_genes)
+        cache_progress(session_ID, progress=int(2/n_steps * 100))
+
         adata, = do_PCA(session_ID, adata, n_comps=n_comps, 
                         random_state=random_state),
+        cache_progress(session_ID, progress=int(3/n_steps * 100))
+
         adata = do_neighborhood_graph(session_ID, adata, neighborhood_method,
                                       n_neighbors=n_neighbors, 
                                       random_state=random_state)
+        cache_progress(session_ID, progress=int(4/n_steps * 100))
+
         adata = do_UMAP(session_ID, adata, random_state=random_state)
+        cache_progress(session_ID, progress=int(5/n_steps * 100))
+
         adata = do_clustering(session_ID, adata, resolution=resolution)
+        cache_progress(session_ID, progress=int(6/n_steps * 100))
+        
         default_return[1] = "Processing successful"
 
     # if it's a dropdown menu update - load adata

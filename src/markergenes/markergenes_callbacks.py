@@ -12,6 +12,8 @@ from . markergenes_functions import identify_marker_genes
 
 from plotting.plotting_functions import *
 from helper_functions import *
+from status.status_functions import *
+
 from app import app
 
 #### Marker gene page callbacks ####
@@ -114,10 +116,18 @@ def refresh_marker_gene_plot(n_clicks, obs_column, groups_to_rank,
     if (groups_to_rank in [[], None, 0, ""]):
         return dash.no_update
     
+    n_steps = 3
+
     adata = cache_adata(session_ID)
-    adata = identify_marker_genes(adata, obs_column, groups_to_rank, method)
+    cache_progress(session_ID, progress=int(1/n_steps * 100))
+
+    adata = identify_marker_genes(session_ID, adata, obs_column, groups_to_rank, method)
+    cache_progress(session_ID, progress=int(2/n_steps * 100))
+
     cache_adata(session_ID, adata.uns, group="uns")
     generate_marker_gene_table(session_ID)
+    cache_progress(session_ID, progress=int(3/n_steps * 100))
+
     return plot_marker_genes(session_ID, adata, obs_column, groups_to_rank)
 
 @app.callback(

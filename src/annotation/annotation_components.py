@@ -68,13 +68,12 @@ def plot_gene_pseudotime():
         id='pseudotime_gene_plot',
         figure={
             'data': [
-                go.Scattergl(
+                go.Scatter(
                     x=None,
                     y=None,
                     text=str("NULL"),
-                    opacity=0.7,
                     name=str("NULL"),
-                    mode="lines+markers",
+                    mode="markers+lines",
                     marker={
                         "opacity": 0,
                         "line_width": 2

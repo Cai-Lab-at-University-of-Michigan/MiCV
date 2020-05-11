@@ -119,7 +119,7 @@ def update_pseudotime_dropdown(pt_calc_status, session_ID, pt_calc_dropdown_opti
     pt_branch_names = [col for col in obs.columns if 'pseudotime_branch_' in col]
     value_list = ["pseudotime", "differentiation_potential"] + pt_branch_names
     options_0 = [{"label": i, "value": i} for i in value_list]
-    options_1 = [{"label": i, "value": int(i[-1])} for i in pt_branch_names]
+    options_1 = [{"label": "all branches", "value": -1}, *[{"label": i, "value": int(i[-1])} for i in pt_branch_names]]
     options_2 = pt_calc_dropdown_options
     for x in [{"label": i, "value": i} for i in pt_branch_names]:
         unique = False

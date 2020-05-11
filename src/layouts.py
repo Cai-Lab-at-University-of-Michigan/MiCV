@@ -9,6 +9,7 @@ from markergenes.markergenes_layouts import *
 from pseudotime.pseudotime_layouts import *
 from annotation.annotation_layouts import *
 from exporting.exporting_layouts import *
+from status.status_layouts import *
 
 def main_layout():
 	session_id = str(uuid.uuid4())
@@ -27,6 +28,10 @@ def main_layout():
 	    			 interval=(15 * 60 * 1000),
 	    			 max_intervals=-1),
 
+		dcc.Interval(id="status_interval", 
+					 interval=(1 * 10 * 1000),
+					 max_intervals=-1),
+
 	    dbc.Container(fluid=True, children=[
 		    # title matter
 		    dbc.Navbar(children=[
@@ -38,21 +43,32 @@ def main_layout():
 		    	href="https://micv.works")
 		    ]),
 
-		    dbc.Tabs(children=[
-		    	### PROCESSING TAB ###
-	        	dbc.Tab(processing_layout(), label="Load and preprocess", tab_id="processing_tab"),
-				
-				### MARKER GENE TAB ###
-				dbc.Tab(markergenes_layout(), label="Marker genes", tab_id="markergenes_tab"),
+		    dbc.Row(children=[
+		    	# Main layout
+		    	dbc.Col(children=[
+		    		dbc.Tabs(children=[
+				    	### PROCESSING TAB ###
+			        	dbc.Tab(processing_layout(), label="Load and preprocess", tab_id="processing_tab"),
+						
+						### MARKER GENE TAB ###
+						dbc.Tab(markergenes_layout(), label="Marker genes", tab_id="markergenes_tab"),
 
-				### PSEUDOTIME TAB ###
-				dbc.Tab(pseudotime_layout(), label="Pseudotime", tab_id="pseudotime_tab"),
-				
-			    ### ANNOTATION TAB ###
-			    dbc.Tab(annotation_layout(), label="Expert annotation", tab_id="annotation_tab"),
+						### PSEUDOTIME TAB ###
+						dbc.Tab(pseudotime_layout(), label="Pseudotime", tab_id="pseudotime_tab"),
+						
+					    ### ANNOTATION TAB ###
+					    dbc.Tab(annotation_layout(), label="Expert annotation", tab_id="annotation_tab"),
 
-				### DOWNLOAD ANALYSIS TAB ###
-				dbc.Tab(exporting_layout(), label="Save and export", tab_id="exporting_tab"),
-			], id="main_tabs"),
+						### DOWNLOAD ANALYSIS TAB ###
+						dbc.Tab(exporting_layout(), label="Save and export", tab_id="exporting_tab"),
+					], id="main_tabs"),	
+		    	], width=10),
+
+		    	# Status panel
+		    	dbc.Col(children=[
+		    		status_layout()
+		    	], width=2)
+		    ])
+
 		]),
 ]) # end main layout

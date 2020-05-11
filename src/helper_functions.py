@@ -403,3 +403,10 @@ def marker_genes_table_exists(session_ID):
     if (os.path.isfile(filename) is True):
         return True
     return False
+
+def to_rgba_string(rgb_tuple, opacity=1):
+    ret = "rgba("
+    for c in rgb_tuple:
+        ret += str(c) + ","
+    ret += str(opacity) + ")"
+    return ret
