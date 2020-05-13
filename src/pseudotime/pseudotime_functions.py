@@ -81,7 +81,7 @@ def calculate_gene_trends(session_ID, list_of_genes, branch_ID):
     X_train = pr_res.pseudotime[cells_in_branch].to_numpy()
     X_train = np.reshape(X_train, (len(X_train), 1))
 
-    X_plot = np.linspace(np.min(X_train), np.max(X_train), 50)
+    X_plot = np.linspace(np.min(X_train), np.max(X_train), 250)
     
     gene_trends = pd.DataFrame()
     gene_trends["pseudotime"] = X_plot

@@ -14,7 +14,7 @@ point_line_width_2d = 0.5
 point_line_width_3d = 0.5
 point_size_2d = 7
 point_size_3d = 2.5
-point_size_pt_trend = 0.1
+point_size_pt_trend = 2
 
 # min and max opacity of points in scatter plots
 min_opacity = 0.15
