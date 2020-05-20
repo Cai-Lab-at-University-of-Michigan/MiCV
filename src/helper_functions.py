@@ -90,7 +90,7 @@ def cache_adata(session_ID, adata=None, group=None):
     
     elif (use_zarr is True):
         zarr_cache_dir = filename  + ".zarr"
-        attribute_groups = ["obs", "var", "obsm", "varm", "obsp", "varp", "layers", "X", "uns", "raw"]
+        attribute_groups = ["obs", "var", "obsm", "varm", "obsp", "varp", "layers", "X", "uns", "raw", "imp"]
 
         if (adata is None): # then -> read it from the store
             if (os.path.isdir(zarr_cache_dir) is True):
@@ -335,7 +335,9 @@ def remove_old_cache(n_days=1.5):
                     print("[ERROR] " + str(e))
                     pass
 
-def get_obs_vector(session_ID, var):
+def get_obs_vector(session_ID, var, layer="X"):
+    save_dir = save_analysis_path  + str(session_ID) + "/"
+    
     if (use_zarr is True):
         zarr_cache_dir = save_dir + "adata_cache" + ".zarr"
         if (os.path.isdir(zarr_cache_dir) is True):
@@ -346,49 +348,12 @@ def get_obs_vector(session_ID, var):
             else:
                 idx = list(store.var["var_names"]).index(var)
                 print("[DEBUG] idx of " + str(var) + ": " + str(idx))
-                ret = store.X[idx]
+                if (layer == "X"):
+                    ret = store.X[idx]
+                else:
+                    ret = (store.layer[layer])[idx]
                 print("[DEBUG] var: " + str(var))
             return ret
-
-def cache_pseudotime_results(session_ID, pr_res=None):
-    filename = save_analysis_path + str(session_ID) + "/pr_res_cache.pickle"
-    lock_filename = filename + ".lock"
-    lock = FileLock(lock_filename, timeout=20)
-    
-    print("[DEBUG] filename = " + str(filename))
-    if (pr_res is None):
-        if (os.path.isfile(filename) is True):
-            with open(filename, "rb") as f:
-                pr_res = pickle.load(f)
-        else:
-            print("[ERROR] pseudotime results cache does not exist at: " + str(filename))
-            pr_res = None
-        return pr_res
-    else:
-        with lock:
-            with open(filename, "wb") as f:
-                pickle.dump(pr_res, f)
-            return pr_res
-
-def cache_imputed_df(session_ID, imp_df=None):
-    filename = save_analysis_path + str(session_ID) + "/imp_df_cache.pickle"
-    lock_filename = filename + ".lock"
-    lock = FileLock(lock_filename, timeout=20)
-    
-    print("[DEBUG] filename = " + str(filename))
-    if (imp_df is None):
-        if (os.path.isfile(filename) is True):
-            with open(filename, "rb") as f:
-                imp_df = pickle.load(f)
-        else:
-            print("[ERROR] imputed df cache does not exist at: " + str(filename))
-            imp_df = None
-        return imp_df
-    else:
-        with lock:
-            with open(filename, "wb") as f:
-                pickle.dump(imp_df, f)
-            return imp_df
 
 def generate_marker_gene_table(session_ID):
     save_dir = save_analysis_path  + str(session_ID) + "/"
