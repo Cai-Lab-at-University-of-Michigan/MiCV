@@ -2,6 +2,7 @@ import os
 import shutil
 import time
 import pickle
+from datetime import datetime
 
 from filelock import Timeout, FileLock
 import zarr
@@ -136,9 +137,9 @@ def cache_adata(session_ID, adata=None, group=None):
                 cache_state(session_ID, key="# cells/obs", val=len(adata.obs.index))
                 cache_state(session_ID, key="# genes/var", val=len(adata.var.index))
             elif (group == "obs"):
-                cache_state(session_ID, key="# cells/obs", val=len(adata.obs.index))
+                cache_state(session_ID, key="# cells/obs", val=len(adata.index))
             elif (group == "var"):
-                cache_state(session_ID, key="# genes/var", val=len(adata.var.index))
+                cache_state(session_ID, key="# genes/var", val=len(adata.index))
             with lock:
                 store = zarr.open(zarr_cache_dir, mode='a')
                 if (group in attribute_groups): # then -> write only that part of the object (fast)
@@ -147,6 +148,7 @@ def cache_adata(session_ID, adata=None, group=None):
                     # write dense copies of X or layers if they're what was passed
                     if (group == "X"):
                         X = adata.tocoo() #X was passed with parameter name "adata"
+                        time_0 = datetime.now()
                         if ((not ("X_dense" in store))
                         or  (X.shape != store["X_dense"].shape)) :
                             store.create_dataset("X_dense", shape=X.shape,
@@ -154,10 +156,13 @@ def cache_adata(session_ID, adata=None, group=None):
                                                  chunks=(int(X.shape[0]/chunk_factors[0]), int(X.shape[1]/chunk_factors[1])),
                                                  compressor=compressor, overwrite=True)
                         store["X_dense"].set_coordinate_selection((X.row, X.col), X.data)
+                        print("[BENCH] time to write X_dense: " + str(datetime.now() - time_0))
+
                     if (group == "layers"):
                         for l in list(adata.keys()): #layers was passed with parameter name "adata"
                             dense_name = "layers_dense/" + str(l)
                             X = adata[l].tocoo()
+                            time_0 = datetime.now()
                             if ((not (dense_name in store))
                             or  (X.shape != store[dense_name].shape)):
                                 store.create_dataset(dense_name, shape=X.shape, 
@@ -165,6 +170,7 @@ def cache_adata(session_ID, adata=None, group=None):
                                                      chunks=(int(X.shape[0]/chunk_factors[0]), int(X.shape[1]/chunk_factors[1])),
                                                      compressor=compressor, overwrite=True)
                             store[dense_name].set_coordinate_selection((X.row, X.col), X.data)
+                            print("[BENCH] time to write " + dense_name + " : " + str(datetime.now() - time_0))
 
                 else:
                     # check that necessary fields are present in adata object
@@ -195,9 +201,11 @@ def cache_adata(session_ID, adata=None, group=None):
                 
                     X = adata.X
                     if(sp.sparse.issparse(X) is True):
+                        time_0 = datetime.now()
                         X = X.tocoo()
                         if ((not ("X_dense" in store))
                         or  (X.shape != store["X_dense"].shape)) :
+                            
                             store.create_dataset("X_dense", shape=X.shape, 
                                                  dtype=X.dtype, fill_value=0, 
                                                  chunks=(int(X.shape[0]/chunk_factors[0]), int(X.shape[1]/chunk_factors[1])),
@@ -208,10 +216,12 @@ def cache_adata(session_ID, adata=None, group=None):
                                              dtype=X.dtype, compressor=compressor, 
                                              overwrite=True)
                         store[dense_name] = X
+                    print("[BENCH] time to write X_dense: " + str(datetime.now() - time_0))
 
                     for l in list(adata.layers.keys()):
                         dense_name = "layers_dense/" + str(l)
                         X = adata.layers[l]
+                        time_0 = datetime.now()
                         if(sp.sparse.issparse(X) is True):
                             X = X.tocoo()
                             if ((not (dense_name in store))
@@ -227,6 +237,7 @@ def cache_adata(session_ID, adata=None, group=None):
                                                  chunks=(int(X.shape[0]/chunk_factors[0]), int(X.shape[1]/chunk_factors[1])),
                                                  overwrite=True)
                             store[dense_name] = X
+                        print("[BENCH] time to write " + dense_name + " : " + str(datetime.now() - time_0))
                     #adata.write_zarr(zarr_cache_dir)
                 return adata
 
@@ -238,12 +249,8 @@ def adata_cache_exists(session_ID):
     if (use_zarr is True):
         if (os.path.isdir(zarr_cache_dir) is True):
             return True
-            #z = zarr.open_group(zarr_cache_dir, mode="r")
-            #if not (("obs" in z) and ("var" in z) and ("X" in z)):
-            #    return False
-            #else:
-            #    return True
-        return False
+        
+    return False
 
 def cache_gene_list(session_ID, gene_list=None):
     filename = save_analysis_path + str(session_ID) + "/gene_list_cache.pickle"

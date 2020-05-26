@@ -3,6 +3,8 @@ import numpy as np
 from pygam import LinearGAM, ExpectileGAM, s, f
 import palantir
 
+from datetime import datetime
+
 from helper_functions import *
 from status.status_functions import *
 
@@ -28,7 +30,7 @@ def do_pseudotime(session_ID, adata, starter_cell_ID=None):
     #imp_df = palantir.utils.run_magic_imputation(a, dm_res, n_steps=2)
     adata.layers["imputed"] = sc.external.pp.magic(adata, t=2, 
                                                    solver="approximate",
-                                                   n_pca = 19, 
+                                                   n_pca=19, 
                                                    n_jobs=1, copy=True).X
     cache_progress(session_ID, progress=int(5/n_steps * 100))
     cache_history(session_ID, history=("Imputed data for pseudotime"))
@@ -119,7 +121,7 @@ def calculate_gene_trends(session_ID, list_of_genes, branch_ID):
 
     X_plot = np.linspace(np.min(obs["pseudotime"][cells_in_branch]), 
                          np.max(obs["pseudotime"][cells_in_branch]), 
-                         250)
+                         125)
     
 
     gene_trends = pd.DataFrame()
@@ -128,11 +130,18 @@ def calculate_gene_trends(session_ID, list_of_genes, branch_ID):
     step_number = 3
     for gene in list_of_genes:
         #Y_train = adata.obs_vector(gene, layer="imputed")
+
+        time_0 = datetime.now()
         Y_train = get_obs_vector(session_ID, gene, layer="imputed")
+        print("[BENCH] time for get_obs_vector: " + str(datetime.now() - time_0))
         Y_train = Y_train[subsample_mask]
 
         gam = LinearGAM(n_splines=5, spline_order=3)
+        
+        time_0 = datetime.now()
         gam.gridsearch(X_train, Y_train, weights=weights, progress=False)
+        print("[BENCH] time for gam fit: " + str(datetime.now() - time_0))
+
         #gam = ExpectileGAM(terms="s(0)", expectile=0.5).gridsearch(X_train, Y_train)
         #lam = gam.lam
         #gam_upper = ExpectileGAM(expectile=0.75, lam=lam).fit(X_train, Y_train)

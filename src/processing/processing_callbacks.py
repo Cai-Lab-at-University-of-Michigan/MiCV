@@ -150,7 +150,7 @@ def parse_selected_dataset(btn_clicks, dataset_key, session_ID):
         return default_return
     else:
         adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
-        cache_adata(session_ID, adata)
+        cache_adata(session_ID, adata.obs, group="obs")
         cache_progress(session_ID, progress=int(1/n_steps * 100))
 
         gene_list = adata.var.index.tolist()
