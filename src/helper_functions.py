@@ -7,6 +7,7 @@ from datetime import datetime
 from filelock import Timeout, FileLock
 import zarr
 from numcodecs import Blosc
+from celery import Celery
 
 import pandas as pd
 import numpy as np
@@ -24,6 +25,53 @@ selected_datasets_path = "/srv/www/MiCV/selected_datasets/"
 lock_timeout = 60
 
 use_zarr = True
+
+
+### begin celery task queue configuration
+task_queue = Celery('MiCV',
+                    broker='redis://127.0.0.1:6379',
+                    backend='redis://127.0.0.1:6379')
+# Optional configuration, see the application user guide.
+task_queue.conf.update(
+    result_expires=3600,
+)
+if __name__ == '__main__':
+    task_queue.start()
+### end celery task queue configuration
+
+### begin celery queue task function definitions
+@task_queue.task
+def write_dense(zarr_cache_dir, key, dense_name, chunk_factors):
+    compressor = Blosc(cname='blosclz', clevel=3, shuffle=Blosc.SHUFFLE)
+    store = zarr.open(zarr_cache_dir, mode='a')
+    
+    if (len(store[key]) == 3):
+        # assume csr sparse matrix - parse as such
+        array_keys = list(store[key].array_keys())
+        X = sp.sparse.csr_matrix((store[key + "/" + array_keys[0]], 
+                                  store[key + "/" + array_keys[1]], store[key + "/" + array_keys[2]]))
+    else:
+        # assume dense matrix
+        # TODO: checking for other cases of sparse matrices/mixed groups
+        X = store[key]
+    if ((not (dense_name in store))
+    or  (X.shape != store[dense_name].shape)) :
+        store.create_dataset(dense_name, shape=X.shape,
+                             dtype=X.dtype, fill_value=0, 
+                             chunks=(int(X.shape[0]/chunk_factors[0]), int(X.shape[1]/chunk_factors[1])),
+                             compressor=compressor, overwrite=True)
+    if(sp.sparse.issparse(X) is True):
+        X = X.tocoo()
+        store[dense_name].set_coordinate_selection((X.row, X.col), X.data)
+    else:
+        store[dense_name] = X
+    return None
+### end celery queue task function definitions
+
+
+### the actual helper functions
+### TODO: break all of this up into specific modules
+### Looking for someone with courage and vision
 
 def generate_adata_from_10X(session_ID, data_type="10X_mtx"):
     data_dir = save_analysis_path + str(session_ID) + "/raw_data/"
@@ -144,33 +192,21 @@ def cache_adata(session_ID, adata=None, group=None):
                 store = zarr.open(zarr_cache_dir, mode='a')
                 if (group in attribute_groups): # then -> write only that part of the object (fast)
                     write_attribute(store, group, adata) # here "adata" is actually just a subset of adata
+                    lock.release()
                     
                     # write dense copies of X or layers if they're what was passed
                     if (group == "X"):
-                        X = adata.tocoo() #X was passed with parameter name "adata"
-                        time_0 = datetime.now()
-                        if ((not ("X_dense" in store))
-                        or  (X.shape != store["X_dense"].shape)) :
-                            store.create_dataset("X_dense", shape=X.shape,
-                                                 dtype=X.dtype, fill_value=0, 
-                                                 chunks=(int(X.shape[0]/chunk_factors[0]), int(X.shape[1]/chunk_factors[1])),
-                                                 compressor=compressor, overwrite=True)
-                        store["X_dense"].set_coordinate_selection((X.row, X.col), X.data)
-                        print("[BENCH] time to write X_dense: " + str(datetime.now() - time_0))
+                        X = adata # X was passed with parameter name "adata"
+                        dense_name = "X_dense"
+                        write_dense.delay(zarr_cache_dir, "X",
+                                          dense_name, chunk_factors)
 
                     if (group == "layers"):
                         for l in list(adata.keys()): #layers was passed with parameter name "adata"
                             dense_name = "layers_dense/" + str(l)
-                            X = adata[l].tocoo()
-                            time_0 = datetime.now()
-                            if ((not (dense_name in store))
-                            or  (X.shape != store[dense_name].shape)):
-                                store.create_dataset(dense_name, shape=X.shape, 
-                                                     dtype=X.dtype, fill_value=0, 
-                                                     chunks=(int(X.shape[0]/chunk_factors[0]), int(X.shape[1]/chunk_factors[1])),
-                                                     compressor=compressor, overwrite=True)
-                            store[dense_name].set_coordinate_selection((X.row, X.col), X.data)
-                            print("[BENCH] time to write " + dense_name + " : " + str(datetime.now() - time_0))
+                            X = adata[l]
+                            write_dense.delay(zarr_cache_dir, "layers/" + l, 
+                                              dense_name, chunk_factors)
 
                 else:
                     # check that necessary fields are present in adata object
@@ -196,48 +232,20 @@ def cache_adata(session_ID, adata=None, group=None):
                     write_attribute(store, "raw", adata.raw)
                     write_attribute(store, "X", adata.X)
                     write_attribute(store, "layers", adata.layers)
+                    lock.release()
 
                     # making dense copies of X and layers (compressed to save disk space)
-                
+                    
                     X = adata.X
-                    if(sp.sparse.issparse(X) is True):
-                        time_0 = datetime.now()
-                        X = X.tocoo()
-                        if ((not ("X_dense" in store))
-                        or  (X.shape != store["X_dense"].shape)) :
-                            
-                            store.create_dataset("X_dense", shape=X.shape, 
-                                                 dtype=X.dtype, fill_value=0, 
-                                                 chunks=(int(X.shape[0]/chunk_factors[0]), int(X.shape[1]/chunk_factors[1])),
-                                                 compressor=compressor, overwrite=True)
-                        store["X_dense"].set_coordinate_selection((X.row, X.col), X.data)
-                    else:
-                        store.create_dataset(dense_name, shape=X.shape,
-                                             dtype=X.dtype, compressor=compressor, 
-                                             overwrite=True)
-                        store[dense_name] = X
-                    print("[BENCH] time to write X_dense: " + str(datetime.now() - time_0))
+                    dense_name = "X_dense"
+                    write_dense.delay(zarr_cache_dir, "X",
+                                      dense_name, chunk_factors)
 
                     for l in list(adata.layers.keys()):
                         dense_name = "layers_dense/" + str(l)
                         X = adata.layers[l]
-                        time_0 = datetime.now()
-                        if(sp.sparse.issparse(X) is True):
-                            X = X.tocoo()
-                            if ((not (dense_name in store))
-                            or  (X.shape != store[dense_name].shape)):
-                                store.create_dataset(dense_name, shape=X.shape,
-                                                     dtype=X.dtype, fill_value=0, 
-                                                     chunks=(int(X.shape[0]/chunk_factors[0]), int(X.shape[1]/chunk_factors[1])),
-                                                     compressor=compressor, overwrite=True)
-                            store[dense_name].set_coordinate_selection((X.row, X.col), X.data)
-                        else:
-                            store.create_dataset(dense_name, shape=X.shape,
-                                                 dtype=X.dtype, compressor=compressor, 
-                                                 chunks=(int(X.shape[0]/chunk_factors[0]), int(X.shape[1]/chunk_factors[1])),
-                                                 overwrite=True)
-                            store[dense_name] = X
-                        print("[BENCH] time to write " + dense_name + " : " + str(datetime.now() - time_0))
+                        write_dense.delay(zarr_cache_dir, "layers/" + l, 
+                                          dense_name, chunk_factors)
                     #adata.write_zarr(zarr_cache_dir)
                 return adata
 
