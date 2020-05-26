@@ -65,6 +65,12 @@ def parse_uploaded_data(contents, filename, session_ID):
         #adata = cache_adata(session_ID, adata)
         adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
         adata.var_names_make_unique()
+
+        state = {"filename": str(filename),
+                 "# cells/obs": len(adata.obs.index),
+                 "# genes/var": len(adata.var.index)}
+        cache_state(session_ID, state)
+
         cache_adata(session_ID, adata)
         cache_progress(session_ID, progress=int(2/n_steps * 100))
 
@@ -93,6 +99,12 @@ def parse_uploaded_data(contents, filename, session_ID):
             return default_return
         adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
         adata.var_names_make_unique()
+        
+        state = {"filename": str(filename),
+                 "# cells/obs": len(adata.obs.index),
+                 "# genes/var": len(adata.var.index)}
+        cache_state(session_ID, state)
+
         cache_adata(session_ID, adata)
         cache_progress(session_ID, progress=int(2/n_steps * 100))
 
@@ -103,7 +115,6 @@ def parse_uploaded_data(contents, filename, session_ID):
         cache_gene_list(session_ID, gene_list)
         cache_progress(session_ID, progress=int(3/n_steps * 100))
         cache_history(session_ID, history="10X data: " + str(filename) + " loaded successfully")
-
 
         return "Raw 10X data uploaded successfully"
 

@@ -26,16 +26,25 @@ def do_pseudotime(session_ID, adata, starter_cell_ID=None):
                                      + " multiscale space for pseudotime"))
 
     #imp_df = palantir.utils.run_magic_imputation(a, dm_res, n_steps=2)
-    adata.layers["imputed"] = sc.external.pp.magic(adata, t=1, copy=True).X
+    adata.layers["imputed"] = sc.external.pp.magic(adata, t=2, 
+                                                   solver="approximate",
+                                                   n_pca = 19, 
+                                                   n_jobs=1, copy=True).X
     cache_progress(session_ID, progress=int(5/n_steps * 100))
     cache_history(session_ID, history=("Imputed data for pseudotime"))
     
     start_cell = starter_cell_ID
     # TODO: need to catch ValueError here in try-catch block
-    pr_res = palantir.core.run_palantir(ms_data, start_cell, 
-                                        terminal_states=None,
-                                        num_waypoints=1200, 
-                                        scale_components=True, n_jobs=1)
+    try:
+        pr_res = palantir.core.run_palantir(ms_data, start_cell, 
+                                            terminal_states=None,
+                                            num_waypoints=1200, 
+                                            scale_components=True, n_jobs=1)
+    except ValueError:
+        cache_progress(session_ID, progress=100)
+        cache_history(session_ID, history=("[ERROR] pseudotime failed to converge. Try again with"
+                                         + " a different starter cell."))
+        return adata
 
     cache_progress(session_ID, progress=int(5/n_steps * 100))
     cache_history(session_ID, history=("Calculated pseudotime trajectories with "
@@ -61,9 +70,8 @@ def do_pseudotime(session_ID, adata, starter_cell_ID=None):
 def calculate_gene_trends(session_ID, list_of_genes, branch_ID):
     n_steps = 2 + len(list_of_genes)
     
-    adata = cache_adata(session_ID)
-    uns = adata.uns
-    obs = adata.obs
+    uns = cache_adata(session_ID, group="uns")
+    obs = cache_adata(session_ID, group="obs")
     cache_progress(session_ID, progress=int(1/n_steps * 100))
 
     if ("branch_probs" in uns.keys()):
@@ -71,7 +79,7 @@ def calculate_gene_trends(session_ID, list_of_genes, branch_ID):
     else:
         branch_probs = None
 
-    pseudotime = adata.obs["pseudotime"]
+    pseudotime = obs["pseudotime"]
     cache_progress(session_ID, progress=int(2/n_steps * 100))
 
     if ((branch_ID == -1) or (branch_probs is None)):
@@ -79,7 +87,7 @@ def calculate_gene_trends(session_ID, list_of_genes, branch_ID):
         cells_in_branch = obs.index
     else:
         branch = list(branch_probs.columns)[branch_ID]
-        cells_in_branch = obs[obs["pseudotime_branch_" + str(branch_ID)] > 0.4].index
+        cells_in_branch = obs[obs["pseudotime_branch_" + str(branch_ID)] > 0.2].index
     print("[DEBUG] branch: " + str(branch))
 
     '''
@@ -107,7 +115,8 @@ def calculate_gene_trends(session_ID, list_of_genes, branch_ID):
     
     step_number = 3
     for gene in list_of_genes:
-        Y_train = adata.obs_vector(gene, layer="imputed")
+        #Y_train = adata.obs_vector(gene, layer="imputed")
+        Y_train = get_obs_vector(session_ID, gene, layer="imputed")
 
         gam = LinearGAM(n_splines=5, spline_order=3)
         gam.gridsearch(X_train, Y_train, weights=weights, progress=False)

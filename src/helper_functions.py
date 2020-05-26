@@ -5,14 +5,16 @@ import pickle
 
 from filelock import Timeout, FileLock
 import zarr
+from numcodecs import Blosc
 
 import pandas as pd
 import numpy as np
+import scipy as sp
 import scanpy as sc
 import anndata as ad
 from anndata._io.zarr import read_dataframe, read_attribute, write_attribute
 
-
+from status.status_functions import *
 from plotting.multi_color_scale import MultiColorScale
 
 save_analysis_path = "/srv/www/MiCV/cache/"
@@ -38,18 +40,26 @@ def generate_adata_from_10X(session_ID, data_type="10X_mtx"):
 
 def load_selected_dataset(session_ID, dataset_key):
     dataset_dict = {
-    "00002": selected_datasets_path + "Cocanougher2020",
-    "00003": selected_datasets_path + "Davie2018",
-    "00004": selected_datasets_path + "10X5KPBMC",
-    "00005": selected_datasets_path + "Sharma2020",
-    "00006": selected_datasets_path + "Zeisel2018"
+    "00002": "Cocanougher2020",
+    "00003": "Davie2018",
+    "00004": "10X5KPBMC",
+    "00005": "Sharma2020",
+    "00006": "Zeisel2018"
     }
 
     filename = dataset_dict[dataset_key]
     if (filename is None):
         return None
+    else:
+        filename = selected_datasets_path + filename
 
     adata = sc.read_h5ad(filename + ".h5ad")
+
+    state = {"filename": str(dataset_dict[dataset_key]),
+             "# cells/obs": len(adata.obs.index),
+             "# genes/var": len(adata.var.index)}
+    cache_state(session_ID, state)
+
     adata = cache_adata(session_ID, adata)
     return adata
 
@@ -61,7 +71,8 @@ def cache_adata(session_ID, adata=None, group=None):
     filename = save_dir + "adata_cache"
     lock_filename = save_dir + "adata.lock"
     lock = FileLock(lock_filename, timeout=lock_timeout)
-    
+    compressor = Blosc(cname='blosclz', clevel=1, shuffle=Blosc.SHUFFLE)
+
     #print("[DEBUG] filename = " + str(filename))
     
     if (use_zarr is False):
@@ -90,12 +101,13 @@ def cache_adata(session_ID, adata=None, group=None):
     
     elif (use_zarr is True):
         zarr_cache_dir = filename  + ".zarr"
-        attribute_groups = ["obs", "var", "obsm", "varm", "obsp", "varp", "layers", "X", "uns", "raw", "imp"]
+        attribute_groups = ["obs", "var", "obsm", "varm", "obsp", "varp", "layers", "X", "uns", "raw"]
+        extra_attribute_groups = ["X_dense", "layers_dense"]
 
         if (adata is None): # then -> read it from the store
             if (os.path.isdir(zarr_cache_dir) is True):
+                store = zarr.open(zarr_cache_dir, mode='r')
                 if (group in attribute_groups): # then -> return only that part of the object (fast)
-                    store = zarr.open(zarr_cache_dir, mode='r')
                     ret = read_attribute(store[group])
                     if not (ret is None):
                         return ret
@@ -104,29 +116,112 @@ def cache_adata(session_ID, adata=None, group=None):
                         return None
                 
                 elif (group is None): # then -> return the whole adata object (slow)
-                    adata = ad.read_zarr(zarr_cache_dir)
+                    #adata = ad.read_zarr(zarr_cache_dir)
+                    d = {}
+                    for g in attribute_groups:
+                        if (g in store.keys()):
+                            if (g in ["obs", "var"]):
+                                d[g] = read_dataframe(store[g])
+                            else:
+                                d[g] = read_attribute(store[g])
+                    adata = ad.AnnData(**d)
                     if not (adata is None):
                         return adata
                     else:
                         print("[ERROR] adata object not saved at: " + str(filename))
                         return None
-        else: # then -> write it to the store
+        else: # then -> update the state dictionary and write adata to the store
+            if (group is None):
+                cache_state(session_ID, key="# cells/obs", val=len(adata.obs.index))
+                cache_state(session_ID, key="# genes/var", val=len(adata.var.index))
+            elif (group == "obs"):
+                cache_state(session_ID, key="# cells/obs", val=len(adata.obs.index))
+            elif (group == "var"):
+                cache_state(session_ID, key="# genes/var", val=len(adata.var.index))
             with lock:
+                store = zarr.open(zarr_cache_dir, mode='a')
                 if (group in attribute_groups): # then -> write only that part of the object (fast)
-                    store = zarr.open(zarr_cache_dir, mode='r+')
-                    write_attribute(store, group, adata) # here adata is actually just a subset of adata
+                    write_attribute(store, group, adata) # here "adata" is actually just a subset of adata
+                    
+                    # write dense copies of X or layers if they're what was passed
+                    if (group == "X"):
+                        X = adata.tocoo() #X was passed with parameter name "adata"
+                        if ((not ("X_dense" in store))
+                        or  (X.shape != store["X_dense"].shape)) :
+                            store.create_dataset("X_dense", shape=X.shape,
+                                                 dtype=X.dtype, fill_value=0, 
+                                                 compressor=compressor, overwrite=True)
+                        store["X_dense"].set_coordinate_selection((X.row, X.col), X.data)
+                    if (group == "layers"):
+                        for l in list(adata.keys()): #layers was passed with parameter name "adata"
+                            dense_name = "layers_dense/" + str(l)
+                            X = adata[l].tocoo()
+                            if ((not (dense_name in store))
+                            or  (X.shape != store[dense_name].shape)):
+                                store.create_dataset(dense_name, shape=X.shape, 
+                                                     dtype=X.dtype, fill_value=0, 
+                                                     compressor=compressor, overwrite=True)
+                            store[dense_name].set_coordinate_selection((X.row, X.col), X.data)
+
                 else:
+                    # check that necessary fields are present in adata object
                     if not ("leiden_n" in adata.obs):
                         if ("leiden" in adata.obs):
                             adata.obs["leiden_n"] = pd.to_numeric(adata.obs["leiden"])
                     if not ("cell_ID" in adata.obs):
                         adata.obs["cell_ID"] = adata.obs.index
-                    if not ("cell_ID" in adata.obs):
+                    if not ("cell_numeric_index" in adata.obs):
                         adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
                     for i in ["user_" + str(j) for j in range(0, 6)]:
                         if not (i in adata.obs.columns):
                             adata.obs[i] = ["0" for k in adata.obs.index.to_list()]
-                    adata.write_zarr(zarr_cache_dir)
+
+                    # save it all to the cache, but make dense copies of X and layers
+                    write_attribute(store, "obs", adata.obs)
+                    write_attribute(store, "var", adata.var)
+                    write_attribute(store, "obsm", adata.obsm)
+                    write_attribute(store, "varm", adata.varm)
+                    write_attribute(store, "obsp", adata.obsp)
+                    write_attribute(store, "varp", adata.varp)
+                    write_attribute(store, "uns", adata.uns)
+                    write_attribute(store, "raw", adata.raw)
+                    write_attribute(store, "X", adata.X)
+                    write_attribute(store, "layers", adata.layers)
+
+                    # making dense copies of X and layers (compressed to save disk space)
+                
+                    X = adata.X
+                    if(sp.sparse.issparse(X) is True):
+                        X = X.tocoo()
+                        if ((not ("X_dense" in store))
+                        or  (X.shape != store["X_dense"].shape)) :
+                            store.create_dataset("X_dense", shape=X.shape, 
+                                                 dtype=X.dtype, fill_value=0, 
+                                                 compressor=compressor, overwrite=True)
+                        store["X_dense"].set_coordinate_selection((X.row, X.col), X.data)
+                    else:
+                        store.create_dataset(dense_name, shape=X.shape,
+                                             dtype=X.dtype, compressor=compressor, 
+                                             overwrite=True)
+                        store[dense_name] = X
+
+                    for l in list(adata.layers.keys()):
+                        dense_name = "layers_dense/" + str(l)
+                        X = adata.layers[l]
+                        if(sp.sparse.issparse(X) is True):
+                            X = X.tocoo()
+                            if ((not (dense_name in store))
+                            or  (X.shape != store[dense_name].shape)):
+                                store.create_dataset(dense_name, shape=X.shape,
+                                                     dtype=X.dtype, fill_value=0, 
+                                                     compressor=compressor, overwrite=True)
+                            store[dense_name].set_coordinate_selection((X.row, X.col), X.data)
+                        else:
+                            store.create_dataset(dense_name, shape=X.shape,
+                                                 dtype=X.dtype, compressor=compressor, 
+                                                 overwrite=True)
+                            store[dense_name] = X
+                    #adata.write_zarr(zarr_cache_dir)
                 return adata
 
 def adata_cache_exists(session_ID):
@@ -143,28 +238,6 @@ def adata_cache_exists(session_ID):
             #else:
             #    return True
         return False
-
-'''
-def cache_gene_trends(session_ID, gene_trends=None):
-    filename = save_analysis_path + str(session_ID) + "/gene_trends_cache.pickle"
-    lock_filename = filename + ".lock"
-    lock = FileLock(lock_filename, timeout=20)
-    
-    print("[DEBUG] filename = " + str(filename))    
-    if (gene_trends is None):
-        if (os.path.isfile(filename) is True):
-            with open(filename, "rb") as f:
-                gene_trends = pickle.load(f)
-        else:
-            print("[ERROR] gene trends cache does not exist at: " + str(filename))
-            gene_trends = []
-        return gene_trends
-    else:
-        with lock:
-            with open(filename, "wb") as f:
-                pickle.dump(gene_trends, f)
-            return gene_trends
-'''
 
 def cache_gene_list(session_ID, gene_list=None):
     filename = save_analysis_path + str(session_ID) + "/gene_list_cache.pickle"
@@ -335,9 +408,10 @@ def remove_old_cache(n_days=1.5):
                     print("[ERROR] " + str(e))
                     pass
 
+# implementation specific to custom zarr file cache with X_dense and layers_dense
 def get_obs_vector(session_ID, var, layer="X"):
     save_dir = save_analysis_path  + str(session_ID) + "/"
-    
+
     if (use_zarr is True):
         zarr_cache_dir = save_dir + "adata_cache" + ".zarr"
         if (os.path.isdir(zarr_cache_dir) is True):
@@ -346,13 +420,12 @@ def get_obs_vector(session_ID, var, layer="X"):
             if (var in store.obs.keys()):
                 ret = list(store.obs[var])
             else:
-                idx = list(store.var["var_names"]).index(var)
+                idx = list(store.var["_index"]).index(var)
                 print("[DEBUG] idx of " + str(var) + ": " + str(idx))
                 if (layer == "X"):
-                    ret = store.X[idx]
+                    ret = store["X_dense"][:, idx]
                 else:
-                    ret = (store.layer[layer])[idx]
-                print("[DEBUG] var: " + str(var))
+                    ret = (store["layers_dense"][layer])[:, idx]
             return ret
 
 def generate_marker_gene_table(session_ID):
