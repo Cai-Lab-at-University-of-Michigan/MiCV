@@ -71,7 +71,8 @@ def cache_adata(session_ID, adata=None, group=None):
     filename = save_dir + "adata_cache"
     lock_filename = save_dir + "adata.lock"
     lock = FileLock(lock_filename, timeout=lock_timeout)
-    compressor = Blosc(cname='blosclz', clevel=1, shuffle=Blosc.SHUFFLE)
+    compressor = Blosc(cname='blosclz', clevel=3, shuffle=Blosc.SHUFFLE)
+    chunk_factors = [150, 3]
 
     #print("[DEBUG] filename = " + str(filename))
     
@@ -150,6 +151,7 @@ def cache_adata(session_ID, adata=None, group=None):
                         or  (X.shape != store["X_dense"].shape)) :
                             store.create_dataset("X_dense", shape=X.shape,
                                                  dtype=X.dtype, fill_value=0, 
+                                                 chunks=(int(X.shape[0]/chunk_factors[0]), int(X.shape[1]/chunk_factors[1])),
                                                  compressor=compressor, overwrite=True)
                         store["X_dense"].set_coordinate_selection((X.row, X.col), X.data)
                     if (group == "layers"):
@@ -160,6 +162,7 @@ def cache_adata(session_ID, adata=None, group=None):
                             or  (X.shape != store[dense_name].shape)):
                                 store.create_dataset(dense_name, shape=X.shape, 
                                                      dtype=X.dtype, fill_value=0, 
+                                                     chunks=(int(X.shape[0]/chunk_factors[0]), int(X.shape[1]/chunk_factors[1])),
                                                      compressor=compressor, overwrite=True)
                             store[dense_name].set_coordinate_selection((X.row, X.col), X.data)
 
@@ -197,6 +200,7 @@ def cache_adata(session_ID, adata=None, group=None):
                         or  (X.shape != store["X_dense"].shape)) :
                             store.create_dataset("X_dense", shape=X.shape, 
                                                  dtype=X.dtype, fill_value=0, 
+                                                 chunks=(int(X.shape[0]/chunk_factors[0]), int(X.shape[1]/chunk_factors[1])),
                                                  compressor=compressor, overwrite=True)
                         store["X_dense"].set_coordinate_selection((X.row, X.col), X.data)
                     else:
@@ -214,11 +218,13 @@ def cache_adata(session_ID, adata=None, group=None):
                             or  (X.shape != store[dense_name].shape)):
                                 store.create_dataset(dense_name, shape=X.shape,
                                                      dtype=X.dtype, fill_value=0, 
+                                                     chunks=(int(X.shape[0]/chunk_factors[0]), int(X.shape[1]/chunk_factors[1])),
                                                      compressor=compressor, overwrite=True)
                             store[dense_name].set_coordinate_selection((X.row, X.col), X.data)
                         else:
                             store.create_dataset(dense_name, shape=X.shape,
                                                  dtype=X.dtype, compressor=compressor, 
+                                                 chunks=(int(X.shape[0]/chunk_factors[0]), int(X.shape[1]/chunk_factors[1])),
                                                  overwrite=True)
                             store[dense_name] = X
                     #adata.write_zarr(zarr_cache_dir)

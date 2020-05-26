@@ -29,7 +29,7 @@ def main_layout():
 	    			 max_intervals=-1),
 
 		dcc.Interval(id="status_interval", 
-					 interval=(1 * 1 * 1000),
+					 interval=(1 * 3 * 1000),
 					 max_intervals=-1),
 
 	    dbc.Container(fluid=True, children=[

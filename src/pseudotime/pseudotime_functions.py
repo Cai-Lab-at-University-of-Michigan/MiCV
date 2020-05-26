@@ -60,8 +60,8 @@ def do_pseudotime(session_ID, adata, starter_cell_ID=None):
         adata.obs["pseudotime_branch_" + str(i)] = pr_res.branch_probs.loc[adata.obs.index, branch]
         #adata.obs["in_pseudotime_branch_" + str(i)] = adata.obs["pseudotime_branch_" + str(i)] >= 0.7
 
-    adata.uns["branch_probs"] = pr_res.branch_probs.to_dict()
-    adata.uns["pseudotime"] = pr_res.pseudotime.to_dict()
+    #adata.uns["branch_probs"] = pr_res.branch_probs.to_dict()
+    #adata.uns["pseudotime"] = pr_res.pseudotime.to_dict()
     cache_adata(session_ID, adata)
 
     cache_progress(session_ID, progress=int(6/n_steps * 100))
@@ -70,25 +70,23 @@ def do_pseudotime(session_ID, adata, starter_cell_ID=None):
 def calculate_gene_trends(session_ID, list_of_genes, branch_ID):
     n_steps = 2 + len(list_of_genes)
     
-    uns = cache_adata(session_ID, group="uns")
+    #uns = cache_adata(session_ID, group="uns")
     obs = cache_adata(session_ID, group="obs")
     cache_progress(session_ID, progress=int(1/n_steps * 100))
 
-    if ("branch_probs" in uns.keys()):
-        branch_probs = pd.DataFrame.from_dict(uns["branch_probs"])
-    else:
+    if (branch_ID == -1):
         branch_probs = None
+    else:
+        branch_probs = obs["pseudotime_branch_" + str(branch_ID)]
 
     pseudotime = obs["pseudotime"]
     cache_progress(session_ID, progress=int(2/n_steps * 100))
 
     if ((branch_ID == -1) or (branch_probs is None)):
-        branch = "all branches"
         cells_in_branch = obs.index
     else:
-        branch = list(branch_probs.columns)[branch_ID]
         cells_in_branch = obs[obs["pseudotime_branch_" + str(branch_ID)] > 0.2].index
-    print("[DEBUG] branch: " + str(branch))
+    print("[DEBUG] branch: " + str(branch_ID))
 
     '''
     gene_trends = palantir.presults.compute_gene_trends(pr_res, 
@@ -97,10 +95,24 @@ def calculate_gene_trends(session_ID, list_of_genes, branch_ID):
                                                         n_jobs=1)
     '''
     X_train = pseudotime.to_numpy()
-    if ((branch != "all branches") and not (branch_probs is None)):
-        weights = branch_probs[branch].to_numpy()
+    
+    # reduce the number of data points we fit to save computation time
+    max_samples_to_fit = 5000
+    if (len(X_train) <= max_samples_to_fit):
+        subsample_mask = np.ones_like(X_train)
+    else:
+        subsample_mask = np.zeros_like(X_train)
+        subsample_mask[0:max_samples_to_fit] = 1
+        np.random.shuffle(subsample_mask)
+    subsample_mask = np.array(subsample_mask, dtype=bool)
+
+    if ((branch_ID != -1) and not (branch_probs is None)):
+        weights = branch_probs.to_numpy()
     else:
         weights = np.ones_like(X_train)
+
+    X_train = X_train[subsample_mask]
+    weights = weights[subsample_mask]
 
     X_train = np.reshape(X_train, (len(X_train), 1))
     weights = np.reshape(weights, (len(weights), 1))
@@ -117,6 +129,7 @@ def calculate_gene_trends(session_ID, list_of_genes, branch_ID):
     for gene in list_of_genes:
         #Y_train = adata.obs_vector(gene, layer="imputed")
         Y_train = get_obs_vector(session_ID, gene, layer="imputed")
+        Y_train = Y_train[subsample_mask]
 
         gam = LinearGAM(n_splines=5, spline_order=3)
         gam.gridsearch(X_train, Y_train, weights=weights, progress=False)
