@@ -89,6 +89,7 @@ def generate_adata_from_10X(session_ID, data_type="10X_mtx"):
 
 def load_selected_dataset(session_ID, dataset_key):
     dataset_dict = {
+    "00001": "Michki2020",
     "00002": "Cocanougher2020",
     "00003": "Davie2018",
     "00004": "10X5KPBMC",
@@ -106,7 +107,8 @@ def load_selected_dataset(session_ID, dataset_key):
 
     state = {"filename": str(dataset_dict[dataset_key]),
              "# cells/obs": len(adata.obs.index),
-             "# genes/var": len(adata.var.index)}
+             "# genes/var": len(adata.var.index),
+             "# counts": int(np.sum(adata.obs["total_counts"]))}
     cache_state(session_ID, state)
 
     adata = cache_adata(session_ID, adata)
@@ -138,6 +140,8 @@ def cache_adata(session_ID, adata=None, group=None):
                     adata.obs["cell_ID"] = adata.obs.index
                 if not ("cell_ID" in adata.obs):
                     adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
+                if not ("gene_ID" in adata.var):
+                    adata.var["gene_ID"] = adata.var.index
                 with lock:
                     adata.write(filename + ".h5ad")
                     return adata
@@ -196,7 +200,6 @@ def cache_adata(session_ID, adata=None, group=None):
                     
                     # write dense copies of X or layers if they're what was passed
                     if (group == "X"):
-                        X = adata # X was passed with parameter name "adata"
                         dense_name = "X_dense"
                         write_dense.delay(zarr_cache_dir, "X",
                                           dense_name, chunk_factors)
@@ -204,7 +207,6 @@ def cache_adata(session_ID, adata=None, group=None):
                     if (group == "layers"):
                         for l in list(adata.keys()): #layers was passed with parameter name "adata"
                             dense_name = "layers_dense/" + str(l)
-                            X = adata[l]
                             write_dense.delay(zarr_cache_dir, "layers/" + l, 
                                               dense_name, chunk_factors)
 
@@ -220,6 +222,8 @@ def cache_adata(session_ID, adata=None, group=None):
                     for i in ["user_" + str(j) for j in range(0, 6)]:
                         if not (i in adata.obs.columns):
                             adata.obs[i] = ["0" for k in adata.obs.index.to_list()]
+                    if not ("gene_ID" in adata.var):
+                        adata.var["gene_ID"] = adata.var.index
 
                     # save it all to the cache, but make dense copies of X and layers
                     write_attribute(store, "obs", adata.obs)
@@ -236,14 +240,12 @@ def cache_adata(session_ID, adata=None, group=None):
 
                     # making dense copies of X and layers (compressed to save disk space)
                     
-                    X = adata.X
                     dense_name = "X_dense"
                     write_dense.delay(zarr_cache_dir, "X",
                                       dense_name, chunk_factors)
 
                     for l in list(adata.layers.keys()):
                         dense_name = "layers_dense/" + str(l)
-                        X = adata.layers[l]
                         write_dense.delay(zarr_cache_dir, "layers/" + l, 
                                           dense_name, chunk_factors)
                     #adata.write_zarr(zarr_cache_dir)
@@ -441,7 +443,7 @@ def get_obs_vector(session_ID, var, layer="X"):
             if (var in store.obs.keys()):
                 ret = list(store.obs[var])
             else:
-                idx = list(store.var["_index"]).index(var)
+                idx = list(store.var["gene_ID"]).index(var)
                 print("[DEBUG] idx of " + str(var) + ": " + str(idx))
                 if (layer == "X"):
                     ret = store["X_dense"][:, idx]
