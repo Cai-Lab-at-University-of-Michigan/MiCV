@@ -8,10 +8,11 @@ from processing.processing_layouts import *
 from markergenes.markergenes_layouts import *
 from pseudotime.pseudotime_layouts import *
 from annotation.annotation_layouts import *
+from importing.importing_layouts import *
 from exporting.exporting_layouts import *
 from status.status_layouts import *
 
-def main_layout():
+def main_layout(demo=False):
 	session_id = str(uuid.uuid4())
 
 	# load the logo
@@ -47,8 +48,11 @@ def main_layout():
 		    	# Main layout
 		    	dbc.Col(children=[
 		    		dbc.Tabs(children=[
+		    			### IMPORTING TAB ###
+			        	dbc.Tab(importing_layout(demo=demo), label="Load data", tab_id="importing_tab"),
+
 				    	### PROCESSING TAB ###
-			        	dbc.Tab(processing_layout(), label="Load and preprocess", tab_id="processing_tab"),
+			        	dbc.Tab(processing_layout(demo=demo), label="Preprocess", tab_id="processing_tab"),
 						
 						### MARKER GENE TAB ###
 						dbc.Tab(markergenes_layout(), label="Marker genes", tab_id="markergenes_tab"),
@@ -60,7 +64,7 @@ def main_layout():
 					    dbc.Tab(annotation_layout(), label="Expert annotation", tab_id="annotation_tab"),
 
 						### DOWNLOAD ANALYSIS TAB ###
-						dbc.Tab(exporting_layout(), label="Save and export", tab_id="exporting_tab"),
+						dbc.Tab(exporting_layout(demo=demo), label="Save and export", tab_id="exporting_tab"),
 					], id="main_tabs"),	
 		    	], width=10),
 

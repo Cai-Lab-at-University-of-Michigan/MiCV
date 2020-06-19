@@ -19,6 +19,7 @@ from processing import processing_callbacks
 from markergenes import markergenes_callbacks
 from pseudotime import pseudotime_callbacks
 from annotation import annotation_callbacks
+from importing import importing_callbacks
 from exporting import exporting_callbacks
 from status import status_callbacks
 
@@ -26,7 +27,7 @@ from status import status_callbacks
               [Input('url', 'pathname')])
 def display_page(pathname):
     if pathname == '/':
-        layout =  layouts.main_layout()
+        layout =  layouts.main_layout(demo=True)
         return layout
     else:
         return "404 URL not found"
