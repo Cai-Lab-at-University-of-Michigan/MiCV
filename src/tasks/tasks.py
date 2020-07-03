@@ -6,7 +6,7 @@ from numcodecs import Blosc
 import scipy.sparse as sp
 
 from .celery import task_queue
-from configmodule.production_config import ProductionConfig as FlaskConfig
+from configmodule.default_config import DefaultConfig as FlaskConfig
 
 
 @task_queue.task
