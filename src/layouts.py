@@ -1,6 +1,10 @@
 import dash_html_components as html
 import dash_core_components as dcc
 import dash_bootstrap_components as dbc
+import dash_dangerously_set_inner_html
+
+from flask_security import current_user
+
 import uuid
 import base64
 
@@ -12,12 +16,61 @@ from importing.importing_layouts import *
 from exporting.exporting_layouts import *
 from status.status_layouts import *
 
-def main_layout(demo=False):
-	session_id = str(uuid.uuid4())
+demo = False
 
+def titlebar_layout(demo=False):	
 	# load the logo
 	MiCV_logo_filename = "/srv/www/MiCV/assets/MiCV_logo.png"
 	MiCV_logo = base64.b64encode(open(MiCV_logo_filename, 'rb').read())
+
+	if (demo == True):
+		login_logout_link = ""
+	elif (current_user and current_user.is_authenticated):
+		login_logout_link = '<a class="nav-item nav-link" href="/logout">Logout</a>'
+	else:
+		login_logout_link = '<a class="nav-item nav-link" href="/login">Login</a>'
+
+	ret = dash_dangerously_set_inner_html.DangerouslySetInnerHTML('''
+		<nav class="navbar navbar-light bg-light">
+          <a class="navbar-brand" href="/" className="ml-2">
+            <img src="assets/MiCV_logo.png" height=45 alt="" loading="lazy">
+            A Multi-informatic Cellular Visualization tool
+          </a>
+          <div class="navbar-expand flex-grow-1 text-left" id="navbarNav">
+            <div class="navbar-nav"> ''' 
+            + login_logout_link 
+            + '''  
+              <a class="nav-item nav-link" href="https://github.com/cailabumich/MiCV">Code</a>
+              <a class="nav-item nav-link" href="https://micv.works/docs/">Documentation</a>
+            </div>
+          </div>
+        </nav>
+        ''')
+	
+	return ret
+
+'''
+	ret = html.Nav(children=[
+			html.A(children=[
+				html.Img(src="data:image/png;base64,{}".format(MiCV_logo.decode()), height="45px"),
+				html.H3("A Multi-informatic Cellular Visualization tool"),
+			], href="https://micv.works", className="navbar-brand"),
+			html.Div(children=[
+				dbc.Nav(children=[
+					(html.A("Logout", href="/logout", className="nav-item nav-link") if (demo is False) else html.A("Login", href="/login", className="nav-item nav-link")),
+					html.A("About", href="/about", className="nav-item nav-link"),
+					html.A("Documentation", href="/documentation", className="nav-item nav-link")
+			    ]),
+			], className="navbar-expand flex-grow-1 text-left", id="navbarNav")
+	], className="navbar navbar-light bg-light")
+
+'''
+
+def main_layout():
+	if ((current_user) and (current_user.is_authenticated is True)):
+		session_id = str(current_user.id)
+	else:
+		session_id = str(uuid.uuid4())
 
 	return html.Div(children=[
 	    html.Div(session_id, id='session-id', style={'display': 'none'}),
@@ -32,18 +85,10 @@ def main_layout(demo=False):
 		dcc.Interval(id="status_interval", 
 					 interval=(1 * 3 * 1000),
 					 max_intervals=-1),
+		# title matter
+		titlebar_layout(demo=demo),
 
 	    dbc.Container(fluid=True, children=[
-		    # title matter
-		    dbc.Navbar(children=[
-		    	html.A(
-		    		dbc.Row(children=[
-		    			dbc.Col(html.Img(src="data:image/png;base64,{}".format(MiCV_logo.decode()), height="45px")),
-						dbc.Col(dbc.NavbarBrand("A Multi-informatic Cellular Visualization tool", className="ml-2"))
-		    		], align="center", no_gutters=True),
-		    	href="https://micv.works")
-		    ]),
-
 		    dbc.Row(children=[
 		    	# Main layout
 		    	dbc.Col(children=[
@@ -75,4 +120,4 @@ def main_layout(demo=False):
 		    ])
 
 		]),
-]) # end main layout
+	]) # end main layout

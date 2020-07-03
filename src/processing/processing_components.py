@@ -88,6 +88,66 @@ def processing_QC_dropdown():
     ) 
     return m
 
+def downsample_cells_slider():
+    m = dbc.Card(children=[
+            dbc.CardHeader("Downsample cells"),
+            dbc.CardBody(children=[
+                html.Div(children=[
+                    html.P("Take only a fraction of cells for downstream analysis")
+                ]),
+                dcc.Slider(
+                    id="downsample_cells_slider",
+                    min=5,
+                    max=100,
+                    step=5,
+                    marks={
+                        10: "10%",
+                        25: "25%",
+                        50: "50%",
+                        75: "75%",
+                        100: "100% (default)"
+                    },
+                    value=100
+                )
+            ]),
+            dbc.CardFooter(children=[
+                html.H4([dbc.Badge("% Cells = 100% ()", 
+                                   id="downsample_cells_output_container")
+                ])
+            ])
+        ])
+    return m
+
+def downsample_counts_slider():
+    m = dbc.Card(children=[
+            dbc.CardHeader("Downsample UMI counts"),
+            dbc.CardBody(children=[
+                html.Div(children=[
+                    html.P("Take only a fraction of UMIs (unique mRNA molecules) for downstream analysis")
+                ]),
+                dcc.Slider(
+                    id="downsample_counts_slider",
+                    min=5,
+                    max=100,
+                    step=5,
+                    marks={
+                        10: "10%",
+                        25: "25%",
+                        50: "50%",
+                        75: "75%",
+                        100: "100% (default)"
+                    },
+                    value=100
+                )
+            ]),
+            dbc.CardFooter(children=[
+                html.H4([dbc.Badge("% UMI counts = 100% ()", 
+                                   id="downsample_counts_output_container")
+                ])
+            ])
+        ])
+    return m
+
 def neighbors_method_radio():
     m = dbc.RadioItems(
         id="neighbors_method_radio",
@@ -119,65 +179,4 @@ def n_dims_processing_radio():
         ],
         value=2
         )
-    return m
-
-def processing_dataset_dropdown():
-    m = dbc.Col(children=[
-            dbc.Row(children=[
-                dbc.Col(
-                    dcc.Dropdown(
-                        id='processing_dataset_dropdown',
-                        options=[
-                            {'label': 'Cocanougher et. al. (2020) whole fly CNS', 'value': "00002"},
-                            {'label': 'Davie et. al. (2018) aging fly brain', 'value': "00003"},
-                            {'label': '10Xv3 5K PBMC', 'value': "00004"}, 
-                            {'label': 'Sharma et. al. (2020) mouse somatosensory neurons', 'value': "00005"},
-                            {'label': 'Zeisel et. al. (2018) mouse nervous system', 'value': "00006"},
-                        ],
-                        value=None,
-                        placeholder="Select a pre-made dataset",
-                        searchable=True,
-                        multi=False,
-                    ),
-                width=9),
-                dbc.Col(children=[
-                    html.Div(children=[
-                        dbc.Button(
-                            children=["Load selected dataset"],
-                            id="processing_load_dataset_button",
-                        ),
-                        dcc.Loading(children=[
-                            html.Div(children="", 
-                                     id='load_selected_dataset_success_output',
-                                     style={'margin-top': 10}
-                            )
-                        ])
-                    ])
-                ], width=3),
-            ]),
-        ], width=8)
-    return m
-
-def processing_data_upload():
-    m = dbc.Col(children=[
-            dcc.Upload(
-                id='upload_raw_data',
-                children=html.Div([
-                    '''Drag and drop either an h5ad anndata object,
-                    or a .zip file containing your 10X output
-                    directory's contents. Alternatively, ''',
-                    html.A('click here to select a file.')
-                ]),
-                style={
-                    'borderWidth': '1px',
-                    'borderStyle': 'dashed',
-                    'borderRadius': '5px',
-                    'textAlign': 'center',
-                    'margin': '10px'
-                },
-                multiple=False
-            ),
-            html.Div(id='upload_raw_data_success_output',
-                     style={'margin-top': 20})
-        ], width=4)
     return m

@@ -5,9 +5,7 @@ import dash_bootstrap_components as dbc
 
 from . import processing_components as cc
 
-demo = False 
-
-def processing_layout():
+def processing_layout(demo=False):
 	m = dbc.Tab(label='Processing', children=[
 			# File uploading
 			dbc.Row(children=[
@@ -15,29 +13,20 @@ def processing_layout():
 	    			dbc.Card(children=[
 	        			dbc.CardHeader(children=[
 	        				dbc.Button(
-				            "Select data",
-				            id="upload-collapse-button",
+				            "Downsampling parameters",
+				            id="downsample-collapse-button",
 				            className="mb-3",
 				            color="primary",
 				        	),
 				        ]),
 				        dbc.Collapse(children=[
-				        	html.Div([
-							    html.P('''
-							    	Either upload your own data (disabled) 
-							    	or search for a pre-made dataset
-							    	to load into MiCV for analysis.
-									''')
-								], 
-								style={'marginBottom': 20, 'marginTop': 20}
-							),
 				            dbc.Row(children=[
-				            	cc.processing_dataset_dropdown(),
-				            	(cc.processing_data_upload() if (demo is False) else html.Div()),
-							], no_gutters=True),
-							html.Div(id='upload_spacer_div',
-						    		 style={'margin-top': 250}),			
-						], id="upload-collapse"),
+				            	dbc.Col(children=[
+				            	cc.downsample_cells_slider(),
+				            	cc.downsample_counts_slider(),
+								]),	
+							]),	
+						], id="downsample-collapse"),
 					]),
 
 	    			dbc.Card(children=[

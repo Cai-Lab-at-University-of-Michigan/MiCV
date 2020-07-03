@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "security/_macros.html" import render_field_with_errors, render_checkbox_field_with_errors, render_field, render_field_errors, form_field %}
+{% from 'bootstrap/form.html' import render_form %}
+
+
+{% block content %}
+{% include "security/_messages.html" %}
+
+<div class="container">
+	<div class="row justify-content-md-center align-items-center">
+		<div class="col-md-5">
+			<h1 class="h3 mb-3 font-weight-normal text-center">Welcome back.</h1>
+			{{ render_form(login_user_form, 
+				action="/login",
+				method="POST",
+				form_type="horizontal") 
+			}}
+		</div>
+		<div class="col-md-5">
+			<div class="row justify-content-md-center">
+				<h1 class="h3 mb-3 font-weight-normal text-center">Haven't met before?</h1>
+			</div>
+			<div class="row justify-content-md-center">
+				<button type="button" class="btn btn-primary">
+					<a class="nav-link" href="{{ url_for_security('register') }}">Register here></a>
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+{% endblock %}
