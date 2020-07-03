@@ -13,7 +13,14 @@ from user_management.models import User, Role
 
 import layouts
 from tasks.tasks import send_flask_mail
-from configmodule.default_config import DefaultConfig as FlaskConfig
+from layouts import demo
+if (demo == False):
+    try:
+    	from configmodule.production_config import ProductionConfig as FlaskConfig
+    except:
+    	from configmodule.default_config import DefaultConfig as FlaskConfig
+else:
+	from configmodule.default_config import DefaultConfig as FlaskConfig
 
 security = Security()
 

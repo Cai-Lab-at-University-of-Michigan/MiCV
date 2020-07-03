@@ -18,6 +18,7 @@ MiCV currently supports the following:
 * Uploading of h5ad formatted scanpy data objects
 
 ### Filtering
+* Down-sampling UMI counts
 * Filtering by min/max genes per cell
 * Filtering by min cells per gene
 * Identifying a user-defined number of highly-variable genes
@@ -30,7 +31,7 @@ MiCV currently supports the following:
 
 ### Pseudotime
 * Calculating a pseudotime trajectory based on a user-selectable starting cell
-* Calculating gene expression trends across pseudotime for all genes
+* Calculating gene expression trends across pseudotime for all genes using PyGAM (no R dependencies)
 
 ### Marker gene analysis
 * Detection of marker genes for arbitrary combinations of clusters
@@ -62,7 +63,12 @@ There are three main components to the MiCV software package:
 
 Redis will need to be installed manually using your distribution's package manager. It does not require any non-default configuration.
 
-We have provided a requirements.txt file that contains a list of all python packages necessary for running MiCV (including celery and gunicorn). Using pip, install these dependencies: `pip install -r requirements.txt`. Then, run the server using the provided `MiCV.sh` script. Point your browser to [th server](http://localhost:8050), and you should be all set to go! 
+We have provided a requirements.txt file that contains a list of all python packages necessary for running MiCV (including celery and gunicorn). Using pip, install these dependencies: `pip install -r requirements.txt`. 
+
+You will need to manually create the following directory on your computer:
+`# mkdir -p /srv/www/MiCV/databases`. Then, make sure it is user-writeable using `# chown -R [username_here]:[group_here] /srv/www/MiCV`  
+
+Then, run the redis, celery, and gunicorn servers all together using the provided `./MiCV.sh` script. Point your browser to [the server](http://localhost:8050), and you should be all set to go! 
 
 ## Usage tips
 * Be patient! Many functions take time (sometimes considerable amounts of it) to process, especially with larger datasets.

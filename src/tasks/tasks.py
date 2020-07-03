@@ -6,8 +6,14 @@ from numcodecs import Blosc
 import scipy.sparse as sp
 
 from .celery import task_queue
-from configmodule.default_config import DefaultConfig as FlaskConfig
-
+from layouts import demo
+if (demo == False):
+    try:
+        from configmodule.production_config import ProductionConfig as FlaskConfig
+    except:
+        from configmodule.default_config import DefaultConfig as FlaskConfig
+else:
+    from configmodule.default_config import DefaultConfig as FlaskConfig
 
 @task_queue.task
 def send_flask_mail(subject=None, sender=None,
