@@ -14,9 +14,9 @@ from app import app
 from . processing_functions import *
 
 @app.callback(
-    [Output(f"{x}-collapse", "is_open") for x in ["upload", "QC", "projection", "clustering"]],
-    [Input(f"{x}-collapse-button", "n_clicks") for x in ["upload", "QC", "projection", "clustering"]],
-    [State(f"{x}-collapse", "is_open") for x in ["upload", "QC", "projection", "clustering"]],
+    [Output(f"{x}-collapse", "is_open") for x in ["downsample", "QC", "projection", "clustering"]],
+    [Input(f"{x}-collapse-button", "n_clicks") for x in ["downsample", "QC", "projection", "clustering"]],
+    [State(f"{x}-collapse", "is_open") for x in ["downsample", "QC", "projection", "clustering"]],
 )
 def toggle_procssing_accordion(n1, n2, n3, n4, is_open1, is_open2, is_open3, is_open4):
     print("[DEBUG] accordion triggered")
@@ -27,7 +27,7 @@ def toggle_procssing_accordion(n1, n2, n3, n4, is_open1, is_open2, is_open3, is_
     else:
         button_id = ctx.triggered[0]["prop_id"].split(".")[0]
     print("[DEBUG] button triggered: " + str(button_id))
-    if button_id == "upload-collapse-button" and n1:
+    if button_id == "downsample-collapse-button" and n1:
         return not is_open1, False, False, False
     elif button_id == "QC-collapse-button" and n2:
         return False, not is_open2, False, False
@@ -38,129 +38,36 @@ def toggle_procssing_accordion(n1, n2, n3, n4, is_open1, is_open2, is_open3, is_
     return False, False, False, False
 
 @app.callback(
-    Output('upload_raw_data_success_output', 'children'),
-    [Input('upload_raw_data', 'contents')],
-    [State('upload_raw_data', 'filename'),
-     State('session-id', 'children')])
-def parse_uploaded_data(contents, filename, session_ID):
-    default_return = dash.no_update
-    if (filename is None):
-        return default_return
+    Output('downsample_cells_output_container', 'children'),
+    [Input('downsample_cells_slider', 'value')],
+    [State('session-id', "children")]
+)
+def update_downsample_cells_slider_output(value, session_ID):
+    state = cache_state(session_ID)
+    if (state is None):
+        return dash.no_update
+    elif not ("# cells/obs" in state.keys()):
+        return dash.no_update
 
-    n_steps = 3
-    print("[STATUS] parsing data upload")
-    
-    content_type, content_string = contents.split(',')
-
-    if (".h5ad" in filename):
-        decoded = base64.b64decode(content_string)
-        save_dir = save_analysis_path + "/" + str(session_ID) + "/"
-        if not (os.path.isdir(save_dir)):
-            os.makedirs(save_dir)
-        with open(save_dir + "adata_cache.h5ad", "wb") as f:
-            f.write(decoded)
-        cache_progress(session_ID, progress=int(1/n_steps * 100))
-
-        adata = sc.read_h5ad(save_dir + "adata_cache.h5ad")
-        #adata = cache_adata(session_ID, adata)
-        adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
-        adata.var_names_make_unique()
-
-        state = {"filename": str(filename),
-                 "# cells/obs": len(adata.obs.index),
-                 "# genes/var": len(adata.var.index)}
-        cache_state(session_ID, state)
-
-        cache_adata(session_ID, adata)
-        cache_progress(session_ID, progress=int(2/n_steps * 100))
-
-        gene_list = adata.var.index.tolist()
-        gene_list = [str(x) for x in gene_list]
-        gene_list = list(sorted(gene_list, key=str.lower))
-        cache_gene_list(session_ID, gene_list)
-        cache_progress(session_ID, progress=int(3/n_steps * 100))
-        cache_history(session_ID, history="Anndata object: " + str(filename) + " loaded successfully")
-
-        return "Anndata object uploaded successfully"
-
-    if (".zip" in filename):
-        save_dir = save_analysis_path + "/" + str(session_ID) + "/raw_data/"
-        if not (os.path.isdir(save_dir)):
-            os.makedirs(save_dir)
-
-        decoded = base64.b64decode(content_string)
-        data = zf.ZipFile(io.BytesIO(decoded), mode="r")
-        data.extractall(path=save_dir)
-        cache_progress(session_ID, progress=int(1/n_steps * 100))
-
-
-        adata = generate_adata_from_10X(session_ID)
-        if (adata is None):
-            return default_return
-        adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
-        adata.var_names_make_unique()
-        
-        state = {"filename": str(filename),
-                 "# cells/obs": len(adata.obs.index),
-                 "# genes/var": len(adata.var.index)}
-        cache_state(session_ID, state)
-
-        cache_adata(session_ID, adata)
-        cache_progress(session_ID, progress=int(2/n_steps * 100))
-
-
-        gene_list = adata.var.index.tolist()
-        gene_list = [str(x) for x in gene_list]
-        gene_list = list(sorted(gene_list, key=str.lower))
-        cache_gene_list(session_ID, gene_list)
-        cache_progress(session_ID, progress=int(3/n_steps * 100))
-        cache_history(session_ID, history="10X data: " + str(filename) + " loaded successfully")
-
-        return "Raw 10X data uploaded successfully"
-
-    return "Uploaded file not recognized. Upload an anndata object in h5ad format or zipped 10X ouput data."
+    n_cells = state["# cells/obs"]
+    return ("% Cells = " + str(value) + "% "
+          + "(" + str(int((value/100) * n_cells)) + ")")
 
 @app.callback(
-    Output('load_selected_dataset_success_output', 'children'),
-    [Input('processing_load_dataset_button', 'n_clicks')],
-    [State('processing_dataset_dropdown', 'value'),
-     State('session-id', 'children')])
-def parse_selected_dataset(btn_clicks, dataset_key, session_ID):
-    default_return = ""
-    print("[STATUS] loading selected dataset")
-    # figure out which button was pressed - what refresh functions to call
-    ctx = dash.callback_context
-    if not ctx.triggered:
-        button_id = "not_triggered"
-        return default_return
-    else:
-        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    Output('downsample_counts_output_container', 'children'),
+    [Input('downsample_counts_slider', 'value')],
+    [State('session-id', "children")]
+)
+def update_downsample_counts_slider_output(value, session_ID):
+    state = cache_state(session_ID)
+    if (state is None):
+        return dash.no_update
+    elif not ("# counts" in state.keys()):
+        return dash.no_update
 
-    if  (button_id == "processing_load_dataset_button"):
-        if (btn_clicks in [None, 0]):
-            return default_return
-
-    if (dataset_key in [0, "", None, []]):
-        return default_return
-
-    n_steps = 2
-    adata = load_selected_dataset(session_ID, dataset_key)
-    if (adata is None):
-        print("[ERROR] selected dataset not found; key: " + str(dataset_key))
-        return default_return
-    else:
-        adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
-        cache_adata(session_ID, adata.obs, group="obs")
-        cache_progress(session_ID, progress=int(1/n_steps * 100))
-
-        gene_list = adata.var.index.tolist()
-        gene_list = [str(x) for x in gene_list]
-        gene_list = list(sorted(gene_list, key=str.lower))
-        cache_gene_list(session_ID, gene_list)
-        cache_progress(session_ID, progress=int(2/n_steps * 100))
-        cache_history(session_ID, history="Curated dataset loaded")
-
-        return "Dataset loaded"
+    n_counts = state["# counts"]
+    return ("% UMI counts = " + str(value) + "% "
+          + "(" + str(int((value/100) * n_counts)) + ")")
 
 @app.callback(
     Output('min_max_genes_slider_output_container', 'children'),
@@ -213,6 +120,8 @@ def update_clustering_resolution_output(value):
      Input("neighbors_method_radio", "value"),
      Input("n_dims_processing_radio", "value")],
     [State("session-id", "children"),
+     State("downsample_cells_slider", "value"),
+     State("downsample_counts_slider", "value"),
      State("n_neighbors_slider", "value"),
      State("clustering_resolution_slider", "value"),
      State("min_max_genes_slider", "value"),
@@ -222,7 +131,8 @@ def update_clustering_resolution_output(value):
 def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
                             clust_btn_clicks, processing_plot_type,
                             neighborhood_method, n_dim_proj_plot, 
-                            session_ID, n_neighbors, resolution, 
+                            session_ID, pct_cells, pct_counts,
+                            n_neighbors, resolution, 
                             min_max_genes, min_cells, n_top_genes,
                             adata=None, target_sum=1e6, 
                             flavor="cell_ranger", n_comps=50, random_state=0):
@@ -279,34 +189,38 @@ def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
         if (all_btn_clicks in [None, 0]):
             return default_return
 
-        n_steps = 6
+        n_steps = 7
         adata = cache_adata(session_ID)
         if (adata is None):
             return default_return
         cache_progress(session_ID, progress=int(1/n_steps * 100))
 
-        print("[STATUS] refreshing everything")   
+        print("[STATUS] refreshing everything")
+        adata = downsample_adata(session_ID, adata, pct_cells=pct_cells,
+                                 pct_counts=pct_counts) 
+        cache_progress(session_ID, progress=int(2/n_steps * 100))
+
         adata = preprocess_data(session_ID, adata, min_cells=min_cells,
                                 min_genes=min_max_genes[0], 
                                 max_genes=min_max_genes[1], 
                                 target_sum=target_sum, flavor=flavor, 
                                 n_top_genes=n_top_genes)
-        cache_progress(session_ID, progress=int(2/n_steps * 100))
+        cache_progress(session_ID, progress=int(3/n_steps * 100))
 
         adata, = do_PCA(session_ID, adata, n_comps=n_comps, 
                         random_state=random_state),
-        cache_progress(session_ID, progress=int(3/n_steps * 100))
+        cache_progress(session_ID, progress=int(4/n_steps * 100))
 
         adata = do_neighborhood_graph(session_ID, adata, neighborhood_method,
                                       n_neighbors=n_neighbors, 
                                       random_state=random_state)
-        cache_progress(session_ID, progress=int(4/n_steps * 100))
-
-        adata = do_UMAP(session_ID, adata, random_state=random_state)
         cache_progress(session_ID, progress=int(5/n_steps * 100))
 
-        adata = do_clustering(session_ID, adata, resolution=resolution)
+        adata = do_UMAP(session_ID, adata, random_state=random_state)
         cache_progress(session_ID, progress=int(6/n_steps * 100))
+
+        adata = do_clustering(session_ID, adata, resolution=resolution)
+        cache_progress(session_ID, progress=int(7/n_steps * 100))
         
         default_return[1] = "Processing successful"
 

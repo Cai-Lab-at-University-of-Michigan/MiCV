@@ -9,6 +9,25 @@ import palantir
 from helper_functions import *
 from status.status_functions import *
 
+def downsample_adata(session_ID, adata, pct_cells=100, 
+                     pct_counts=100):
+    state = cache_state(session_ID)
+    n_cells = state["# cells/obs"]
+    n_counts = state["# counts"]
+
+    if (pct_counts < 100):
+        final_counts = int((pct_counts/100) * n_counts)
+        sc.pp.downsample_counts(adata, total_counts=final_counts)
+        cache_history(session_ID, history="Downsampled to " 
+                    + str(final_counts) + " UMI counts")
+    
+    if (pct_cells < 100):
+        final_cells = int((pct_cells/100) * n_cells)
+        sc.pp.subsample(adata, n_obs=final_cells)
+        cache_history(session_ID, history="Downsampled to " 
+                    + str(final_cells) + " cells")
+    return adata
+    
 def preprocess_data(session_ID, adata,
                     min_cells=2, min_genes=200, max_genes=10000,
                     target_sum=1e6, flavor="cell_ranger", 

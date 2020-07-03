@@ -93,7 +93,10 @@ def plot_gene_pseudotime():
     return g
 
 def plot_expression_UMAP():
+    PLOT_RESOLUTION:dict = dict(width=600,
+                                height=500)
     g = dcc.Graph(
+        config={"toImageButtonOptions": PLOT_RESOLUTION},
         id='expression_UMAP_plot',
         figure={
             'data': [

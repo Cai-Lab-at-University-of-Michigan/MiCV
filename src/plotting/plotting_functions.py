@@ -204,7 +204,7 @@ def plot_expression_UMAP(session_ID, selected_genes, multi="standard", n_dim=2):
         n_dim = 2
         coords = pd.DataFrame(obsm["X_umap"], index=obs.index)
 
-
+    
     if (multi == "standard"):
         colorscale = "viridis"
         selected_gene = selected_genes

@@ -6,9 +6,9 @@ A Multi-Informatic Cellular Visualization tool
 ## About
 MiCV is a python dash-based web-application that enables researchers to upload raw scRNA-seq data and perform filtering, analysis, and manual annotation. **It is largely an interactive wrapper for functions provided by [scanpy](https://github.com/theislab/scanpy) and [palantir](https://github.com/dpeerlab/Palantir)**.
 
-MiCV is being released in advance of our upcoming publication on type-II neurogenesis in *Drosophila melanogaster*; you can test out this web application at [micv.works](https://micv.works)
+MiCV is being released in advance of our upcoming publication on type-II neurogenesis in *Drosophila melanogaster*; you can test out this web application at [micv.works](https://micv.works), or read our pre-print at the [biorxiv](https://www.biorxiv.org/content/10.1101/2020.07.02.184549v1)
 
-MiCV is still in a pre-alpha state and likely full of bugs. We welcome your bug reports on our issue tracker! 
+MiCV is still in a beta state and a few bugs here and there are to be expected. We welcome your bug reports on our issue tracker! 
 
 ## Features
 MiCV currently supports the following:
@@ -54,11 +54,15 @@ More features are coming! We welcome your suggestions and pull requests.
 
 ## Installation
 
-### The easy-ish way - Docker
-A docker container is available for MiCV. Running it will spin up a web server at [localhost:8050/MiCV](http://localhost:8050/MiCV) and enable you to upload (locally) your data for analysis. You can find that docker image [here](https://hub.docker.com/r/nigeil/micv).
+### Linux
+There are three main components to the MiCV software package:
+* A redis caching backend server
+* A celery task queue for long-running tasks
+* The gunicorn server that handles web requests and "runs" the MiCV server
 
-#### Linux
-Install docker using your system's package manager, then start it using your init system (likely systemd - `systemctl start docker`). You can then pull the docker image using `docker pull nigeil/micv:0.2.1` (replace `0.2.1` with the latest version on the [docker repo](https://hub.docker.com/r/nigeil/micv)) and start it using `docker run --name=MiCV -p 8050:8050 -e DASH_DEBUG=true micv:0.2.1`. Finally, you can access the interface from [localhost:8050/MiCV](http://localhost:8050/MiCV). Status/error messages will show up in your terminal and potentially on the web interface as well, so keep a look out as you're trying to debug.  
+Redis will need to be installed manually using your distribution's package manager. It does not require any non-default configuration.
+
+We have provided a requirements.txt file that contains a list of all python packages necessary for running MiCV (including celery and gunicorn). Using pip, install these dependencies: `pip install -r requirements.txt`. Then, run the server using the provided `MiCV.sh` script. Point your browser to [th server](http://localhost:8050), and you should be all set to go! 
 
 ## Usage tips
 * Be patient! Many functions take time (sometimes considerable amounts of it) to process, especially with larger datasets.
