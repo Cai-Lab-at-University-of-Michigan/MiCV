@@ -41,13 +41,17 @@ def markergenes_layout():
 							'''),
 						cc.marker_gene_group_dropdown(),
 						cc.marker_gene_method_radio(),
-						dbc.Button("Recalculate marker genes", 
-					    			id="recalculate_marker_genes"),
+						dbc.Row(children=[
+							dbc.Col(children=[
+								dbc.Button("Recalculate marker genes", 
+					    					id="recalculate_marker_genes")
+							], width=2),
+							dbc.Col(children=[
+								cc.marker_genes_export_button()
+							], width=2)
+						]),
 						dcc.Loading(children=[cc.marker_gene_plot()])
-					], width=10),
-					dbc.Col(children=[
-						cc.marker_genes_export_button()
-					], width=2)
+					], width=12)
 				])
 			]) # end marker gene tab
 	return m

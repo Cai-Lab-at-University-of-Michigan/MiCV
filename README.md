@@ -6,7 +6,7 @@ A Multi-Informatic Cellular Visualization tool
 ## About
 MiCV is a python dash-based web-application that enables researchers to upload raw scRNA-seq data and perform filtering, analysis, and manual annotation. **It is largely an interactive wrapper for functions provided by [scanpy](https://github.com/theislab/scanpy) and [palantir](https://github.com/dpeerlab/Palantir)**.
 
-MiCV is being released in advance of our upcoming publication on type-II neurogenesis in *Drosophila melanogaster*; you can test out this web application at [micv.works](https://micv.works), or read our pre-print at the [biorxiv](https://www.biorxiv.org/content/10.1101/2020.07.02.184549v1)
+MiCV is being released in advance of our upcoming publication on type-II neurogenesis in *Drosophila melanogaster*; you can test out this web application at [micv.works](https://micv.works), or read our pre-print at the [biorxiv](https://www.biorxiv.org/content/10.1101/2020.07.02.184549v1).
 
 MiCV is still in a beta state and a few bugs here and there are to be expected. We welcome your bug reports on our issue tracker! 
 

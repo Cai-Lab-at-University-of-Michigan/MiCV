@@ -30,7 +30,6 @@ def refresh_clustering_plot(active_tab,
                             adata=None, data_dir=None):
 
     default_return = [dash.no_update, dash.no_update]
-    print("[STATUS] refreshing clustering plot")
     # figure out which button was pressed - what refresh functions to call
     ctx = dash.callback_context
     if not ctx.triggered:
@@ -171,8 +170,6 @@ def refresh_UMAP_clustering_count(selected_cells, session_ID, n_total_cells):
 )
 def refresh_pseudotime_plot(pt_plot_type, session_ID, active_tab, 
                             n_dims_proj, adata=None, data_dir=None):
-
-    print("[STATUS] refreshing pseudotime plot")
     # figure out which button was pressed - what refresh functions to call
     ctx = dash.callback_context
     if not ctx.triggered:
@@ -198,7 +195,6 @@ def refresh_pseudotime_plot(pt_plot_type, session_ID, active_tab,
         return dash.no_update
     
     # regardless of what updates were requested - update the plot
-    print("[STATUS] updating pseudotime plot")
     return plot_pseudotime_UMAP(session_ID, pt_plot_type)
 
 @app.callback(
@@ -225,7 +221,6 @@ def refresh_UMAP_pseudotime_count(selected_cells, session_ID, n_total_cells):
     [State("session-id", "children")]
 )
 def update_single_gene_dropdown(active_tab, session_ID):
-    print("[DEBUG] active_tab: " + str(active_tab))
     if (active_tab != "annotation_tab"):
         return dash.no_update
     
@@ -282,7 +277,6 @@ def refresh_expression_UMAP_plot(selected_gene, selected_mixed_genes,
     if (adata_cache_exists(session_ID) is False):
         return default_return
 
-    print("[STATUS] updating expression UMAP plot")
     return [plot_expression_UMAP(session_ID, plot_these_genes, multi, n_dim=n_dims_proj), hidden]
 
 @app.callback(
@@ -333,17 +327,13 @@ def refresh_pseudotime_gene_plot(selected_genes, relative, branch_n, session_ID)
     
     ret = default_return
 
-    print("[STATUS] plotting gene pseudotime expression for: " + str(selected_genes))
-    print("[DEBUG] branch_n: " + str(branch_n))
     if not(branch_n in ["", None, []]):
         #gene_trends = cache_gene_trends(session_ID)
-        print("[STATUS] calculating gene pseudotime expression for: " + str(selected_genes))
         gene_trends = calculate_gene_trends(session_ID, selected_genes, branch_n)
         ret[0] = plot_expression_trend(gene_trends, selected_genes, 
                                        selected_branch=branch_n, 
                                        relative=relative)
     
-    print("[STATUS] updating violin gene plot")
     ret[1] = plot_expression_violin(session_ID, selected_genes)
     return ret
 
@@ -374,8 +364,6 @@ def refresh_violin_gene_count(selected_cells, session_ID, n_total_cells):
      State('single_gene_expression_radio', 'value')]
 )
 def update_gene_data_table(selected_gene, session_ID, multi):
-    print("[STATUS] getting data for first of selected_gene: " 
-          + str(selected_gene))
 
     if (selected_gene in [None, "", 0, []]):
         return dash.no_update

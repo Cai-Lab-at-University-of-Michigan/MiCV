@@ -25,7 +25,6 @@ from app import app
 def refresh_marker_gene_UMAP_dropdown(active_tab, session_ID):
     default_return = dash.no_update
 
-    print("[STATUS] refreshing marker gene UMAP dropdown options")
     # figure out which button was pressed - what refresh functions to call
     ctx = dash.callback_context
     if not ctx.triggered:
@@ -56,7 +55,6 @@ def refresh_marker_gene_UMAP_dropdown(active_tab, session_ID):
 )
 def refresh_marker_gene_group_dropdown(obs_column,
                                        n_dims_proj, session_ID):
-    print("[STATUS] refreshing marker gene group dropdown options")
     default_return = [dash.no_update, dash.no_update]
     # figure out which button was pressed - what refresh functions to call
     ctx = dash.callback_context
@@ -66,7 +64,6 @@ def refresh_marker_gene_group_dropdown(obs_column,
     else:
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    print("[DEBUG] loading adata")
     obs = cache_adata(session_ID, group="obs")
     
     if (obs_column in ["", 0, None, []]):
@@ -77,7 +74,7 @@ def refresh_marker_gene_group_dropdown(obs_column,
         return default_return
     
     options = [
-        {"label": str(x), "value": x} for x in (obs[obs_column]).unique()
+        {"label": str(x), "value": x} for x in sorted((obs[obs_column]).unique())
     ]
     options.insert(0, {"label": "all (default)", "value": "all"})
     
@@ -98,7 +95,6 @@ def refresh_marker_gene_group_dropdown(obs_column,
 )
 def refresh_marker_gene_plot(n_clicks, obs_column, groups_to_rank, 
                              method, session_ID):
-    print("[STATUS] refreshing marker gene plot")
     # figure out which button was pressed - what refresh functions to call
     ctx = dash.callback_context
     if not ctx.triggered:
@@ -134,24 +130,24 @@ def refresh_marker_gene_plot(n_clicks, obs_column, groups_to_rank,
     [Output("download_marker_genes_button", "disabled"),
      Output("download_marker_genes_link", "href")],
     [Input("main_tabs", "active_tab"),
-     Input("recalculate_marker_genes", "n_clicks")],
+     Input("marker_gene_plot", "children")],
     [State("session-id", "children")]
 )
-def enabled_marker_genes_download_button(active_tab, n_clicks, session_ID):
+def enabled_marker_genes_download_button(active_tab,
+                                         plot_children, session_ID):
     default_return = [True, dash.no_update] #disabled
     
     if ((active_tab != "markergenes_tab")
-    or  (n_clicks in [0, None, "", []])):
+    or  (plot_children in [0, None, "", []])):
         return default_return
     
-    if not (marker_genes_table_exists(session_ID)):
+    if (marker_genes_table_exists(session_ID)):
         return [False, "/download/" + session_ID + "/marker_genes"]
     else:
         return default_return
 
 @app.server.route('/download/<path:path>/marker_genes')
 def serve_marker_genes_table_csv(path):
-    print("[STATUS] preparing to serve marker genes table in csv format")
     f = save_analysis_path + path + "/marker_genes.csv"
     if (os.path.isfile(f)):
         print("[DEBUG] file " + f + " found - serving")

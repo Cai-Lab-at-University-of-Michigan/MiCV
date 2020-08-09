@@ -26,6 +26,10 @@ def plot_UMAP(session_ID, clustering_plot_type, selected_cell_intersection=[], n
     if (adata_cache_exists(session_ID) is False):
         print("[ERROR] cache for " + str(session_ID) + "does not exist")
         return dash.no_update
+    if ((adata_cache_group_exists(session_ID, "obs") is False)
+    or  (adata_cache_group_exists(session_ID, "obsm") is False)):
+        print("[ERROR] obs/obsm for " + str(session_ID) + "does not exist")
+        return dash.no_update
 
     obs  = cache_adata(session_ID, group="obs")
     obsm = cache_adata(session_ID, group="obsm")
@@ -123,6 +127,10 @@ def plot_UMAP(session_ID, clustering_plot_type, selected_cell_intersection=[], n
 
 def plot_pseudotime_UMAP(session_ID, pt_plot_type, n_dim=2):
     if (adata_cache_exists(session_ID) is False):
+        return dash.no_update
+    if ((adata_cache_group_exists(session_ID, "obs") is False)
+    or  (adata_cache_group_exists(session_ID, "obsm") is False)):
+        print("[ERROR] obs/obsm for " + str(session_ID) + "does not exist")
         return dash.no_update
 
     obs  = cache_adata(session_ID, group="obs")
@@ -333,62 +341,7 @@ def plot_expression_UMAP(session_ID, selected_genes, multi="standard", n_dim=2):
                 #height=3 * scale
             )
         }
-'''
-def plot_expression_trend(gene_trends, selected_genes, selected_branch, 
-                          relative="absolute"):
 
-    traces = []
-    trends = gene_trends[selected_branch]["trends"]
-    stds = gene_trends[selected_branch]["std"] * 25
-
-    colors = pd.Series(sns.color_palette('Set2', len(selected_genes)).as_hex(), 
-                       index=selected_genes)
-    for i in selected_genes:
-        if not (i in trends.index):
-            print("[DEBUG] gene " + str(i)  + " not in gene trends; skipping")
-            continue
-        if (relative == "relative"):
-            trend = trends.loc[i,:] / np.max(trends.loc[i,:])
-            std   = stds.loc[i,:] / np.max(stds.loc[i,:])
-        else:
-            trend = trends.loc[i,:]
-            std   = stds.loc[i,:]
-        traces.append(
-            go.Scattergl(
-                x=trends.columns,
-                y=trend,
-                text=str(i),
-                mode="lines+markers",
-                opacity=0.7,
-                marker={
-                    'size': std,
-                    'line': {'width': 2, 'color': colors[i]},
-                    "color": colors[i],
-                    "opacity": 0.25
-                },
-                name=(str(i))
-            )
-        )
-    
-    if (traces in [[], None]):
-        print("[DEBUG] no traces added to expression trends plot")
-        return dash.no_update
-
-    return {
-        'data': traces,
-        'layout': dict(
-            xaxis={"title": "Pseudotime"},
-            yaxis={"title": "Expression"},
-            margin=margin,
-            legend={'x': 0, 'y': 1},
-            hovermode='closest',
-            transition = {'duration': 100},
-            autosize=True
-            #width=4 * scale,
-            #height=3 * scale
-        )
-    }
-'''
 def plot_expression_trend(gene_trends, selected_genes, selected_branch, 
                           relative="absolute"):
 
@@ -478,7 +431,7 @@ def plot_expression_trend(gene_trends, selected_genes, selected_branch,
 def plot_expression_violin(session_ID, selected_genes, show_points = "all"):
     if (adata_cache_exists(session_ID) is False):
         return dash.no_update
-
+    
     adata  = cache_adata(session_ID)
     var    = adata.var
     obs    = adata.obs
@@ -560,8 +513,7 @@ def plot_marker_genes(session_ID, adata, obs_column, groups_to_rank):
 			                                 dendrogram=False, groupby=obs_column, show=False,
 			                                 save=".png")
     encoded_image = base64.b64encode(open(save_analysis_path + str(session_ID) + "/" + image_filename, 'rb').read())
-    return html.Img(src='data:image/png;base64,{}'.format(encoded_image.decode()),
-                    width=1000)
+    return html.Img(src='data:image/png;base64,{}'.format(encoded_image.decode()), style={"width": "95%"})
 
 def get_mixed_expression_value(e0, e1=None, e2=None, session_ID=None):
     m = 1

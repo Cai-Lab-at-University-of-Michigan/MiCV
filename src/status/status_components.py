@@ -7,9 +7,17 @@ def status_progress():
 	return m
 
 def status_history():
-	m = html.Div(id="status_history", children=[""])
+	m = dbc.Row(children=[
+			dbc.Col(children=[
+				html.Div(id="status_history", children=[""])
+			]),
+		])
 	return m
 
 def status_state():
-	m = html.Div(id="status_state", children=[""])
+	m = dbc.Row(children=[
+			dbc.Col(children=[
+				html.Div(id="status_state", children=[""])
+			]),
+		])
 	return m

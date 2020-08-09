@@ -17,7 +17,6 @@ from . pseudotime_functions import *
 )
 def refresh_pseudotime_UMAP(pt_btn_clicks, pt_plot_type, session_ID,
 							selected_cells):
-    print("[STATUS] refreshing pseudotime UMAP plot")
     default_return = [dash.no_update, dash.no_update]
     # figure out which button was pressed - what refresh functions to call
     ctx = dash.callback_context
@@ -28,7 +27,6 @@ def refresh_pseudotime_UMAP(pt_btn_clicks, pt_plot_type, session_ID,
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     if(button_id == "refresh_pseudotime_button"):
-        print("[DEBUG] refresh_pseudotime_button clicked")
         if (pt_btn_clicks in [None, 0]):
             return default_return
         
@@ -65,7 +63,6 @@ def refresh_pseudotime_UMAP(pt_btn_clicks, pt_plot_type, session_ID,
     # update the plot
     if (pt_plot_type in [0, "", None, []]):
         return default_return
-    print("[STATUS] updating plot by: " + str(pt_plot_type))
     
     obs = cache_adata(session_ID, group="obs")
 

@@ -74,11 +74,11 @@ def marker_gene_method_radio():
     return m
 
 def marker_gene_plot():
-    m = html.Div(
+    m = dbc.Container(
         id="marker_gene_plot",
-        children=[
-            html.Img(src=None)
-        ])
+        children=[],
+        fluid=True
+        )
     return m
 
 def n_dims_proj_markergenes_radio():

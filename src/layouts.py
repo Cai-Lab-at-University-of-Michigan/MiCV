@@ -20,31 +20,34 @@ demo = False
 
 def titlebar_layout(demo=False):	
 	# load the logo
-	MiCV_logo_filename = "/srv/www/MiCV/assets/MiCV_logo.png"
+	MiCV_logo_filename = "/srv/www/MiCV/assets/img/MiCV_logo.png"
 	MiCV_logo = base64.b64encode(open(MiCV_logo_filename, 'rb').read())
 
 	if (demo == True):
 		login_logout_link = ""
 	elif (current_user and current_user.is_authenticated):
-		login_logout_link = '<a class="nav-item nav-link" href="/logout">Logout</a>'
+		login_logout_link = '<li class="nav-item" role="presentation"><a class="btn btn-dark text-light" role="button" href="/logout">Logout</a></li>'
 	else:
-		login_logout_link = '<a class="nav-item nav-link" href="/login">Login</a>'
+		login_logout_link = '<li class="nav-item" role="presentation"><a class="btn btn-dark text-light" role="button" href="/login">Login</a></li>'
 
 	ret = dash_dangerously_set_inner_html.DangerouslySetInnerHTML('''
-		<nav class="navbar navbar-light bg-light">
-          <a class="navbar-brand" href="/" className="ml-2">
-            <img src="assets/MiCV_logo.png" height=45 alt="" loading="lazy">
-            A Multi-informatic Cellular Visualization tool
-          </a>
-          <div class="navbar-expand flex-grow-1 text-left" id="navbarNav">
-            <div class="navbar-nav"> ''' 
-            + login_logout_link 
-            + '''  
-              <a class="nav-item nav-link" href="https://github.com/cailabumich/MiCV">Code</a>
-              <a class="nav-item nav-link" href="https://micv.works/docs/">Documentation</a>
-            </div>
-          </div>
-        </nav>
+		<nav class="navbar navbar-light navbar-expand-md bg-light" style="font-family: 'Open Sans', sans-serif;">
+        <div class="container-fluid"><a href="/about"><img class="img-fluid" src="assets/img/MiCV_logo.png" width="200" height="200"></a><a class="navbar-brand" href="#"></a><button data-toggle="collapse" class="navbar-toggler" data-target="#navcol-1"><span class="sr-only">Toggle navigation</span><span class="navbar-toggler-icon"></span></button>
+            <div
+                class="collapse navbar-collapse" id="navcol-1">
+                <ul class="nav navbar-nav">
+                    <li class="nav-item" role="presentation"><a class="nav-link active" href="/about">About</a></li>
+                    <li class="nav-item" role="presentation"></li>
+                    <li class="nav-item" role="presentation"><a class="nav-link" href="/docs">Docs</a></li>
+                    <li class="nav-item" role="presentation"><a class="nav-link" href="/code">Code</a></li>
+                </ul>
+                <ul class="nav navbar-nav ml-auto">'''
+                + login_logout_link   
+                + '''    
+                </ul>
+        </div>
+        </div>
+    	</nav>
         ''')
 	
 	return ret
@@ -83,8 +86,9 @@ def main_layout():
 	    			 max_intervals=-1),
 
 		dcc.Interval(id="status_interval", 
-					 interval=(1 * 3 * 1000),
+					 interval=(1 * 2 * 1000),
 					 max_intervals=-1),
+
 		# title matter
 		titlebar_layout(demo=demo),
 
@@ -94,7 +98,8 @@ def main_layout():
 		    	dbc.Col(children=[
 		    		dbc.Tabs(children=[
 		    			### IMPORTING TAB ###
-			        	dbc.Tab(importing_layout(demo=demo), label="Load data", tab_id="importing_tab"),
+			        	dbc.Tab(importing_layout(demo=demo), label="Load", 
+			        			tab_id="importing_tab"),
 
 				    	### PROCESSING TAB ###
 			        	dbc.Tab(processing_layout(demo=demo), label="Preprocess", tab_id="processing_tab"),
@@ -106,10 +111,10 @@ def main_layout():
 						dbc.Tab(pseudotime_layout(), label="Pseudotime", tab_id="pseudotime_tab"),
 						
 					    ### ANNOTATION TAB ###
-					    dbc.Tab(annotation_layout(), label="Expert annotation", tab_id="annotation_tab"),
+					    dbc.Tab(annotation_layout(), label="Exploration", tab_id="annotation_tab"),
 
 						### DOWNLOAD ANALYSIS TAB ###
-						dbc.Tab(exporting_layout(demo=demo), label="Save and export", tab_id="exporting_tab"),
+						dbc.Tab(exporting_layout(demo=demo), label="Save/export", tab_id="exporting_tab"),
 					], id="main_tabs"),	
 		    	], width=10),
 

@@ -5,16 +5,19 @@ from flask_mail import Mail
 from flask_caching import Cache
 from flask_security import Security, login_required, \
      SQLAlchemySessionUserDatastore
+from flask_admin import Admin
 from sqlalchemy import exc
 from flask_bootstrap import Bootstrap
 
 from user_management.database import db_session, init_db
 from user_management.models import User, Role
 
+from admin.views import AdminView
+
 import layouts
 from tasks.tasks import send_flask_mail
 from layouts import demo
-if (demo == False):
+if (demo is False):
     try:
     	from configmodule.production_config import ProductionConfig as FlaskConfig
     except:
@@ -29,14 +32,15 @@ server = Flask(__name__)
 server.config.from_object(FlaskConfig())
 Bootstrap(server)
 
-app = dash.Dash(server=server, show_undo_redo=False, url_base_pathname="/")
+app = dash.Dash(server=server, show_undo_redo=False,
+                url_base_pathname="/", update_title=None)
 app.title = "MiCV"
 app.config.suppress_callback_exceptions = True
 
 # Setup cache
 cache = Cache(app.server, config={
     'CACHE_TYPE': 'redis',
-    'CACHE_THRESHOLD': 200,  # should be equal to maximum number of active users
+    'CACHE_THRESHOLD': 200,  # should be set to max number of active users
     "CACHE_DEFAULT_TIMEOUT": 30000
     }
 )
@@ -70,3 +74,8 @@ def create_test_user():
     	print("[DEBUG] user already exists")
     db_session.commit()
 '''
+
+# Setup the admin interface
+admin = Admin(app.server)
+admin.add_view(AdminView(User, db_session, endpoint="user_admin"))
+admin.add_view(AdminView(Role, db_session, endpoint="role_admin"))

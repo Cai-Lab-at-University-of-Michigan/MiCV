@@ -42,6 +42,8 @@ def build_history_table(session_ID):
 def cache_state(session_ID, state=None, key=None, val=None):
 	cache_ID = session_ID + "state"
 	ret = cache.get(cache_ID)
+	if (ret is None):
+		ret = {}
 	
 	# entire dictionary of state passed - cache it
 	if not (state is None):

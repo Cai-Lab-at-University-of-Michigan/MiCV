@@ -19,14 +19,12 @@ from . processing_functions import *
     [State(f"{x}-collapse", "is_open") for x in ["downsample", "QC", "projection", "clustering"]],
 )
 def toggle_procssing_accordion(n1, n2, n3, n4, is_open1, is_open2, is_open3, is_open4):
-    print("[DEBUG] accordion triggered")
     ctx = dash.callback_context
 
     if not ctx.triggered:
         return dash.no_update
     else:
         button_id = ctx.triggered[0]["prop_id"].split(".")[0]
-    print("[DEBUG] button triggered: " + str(button_id))
     if button_id == "downsample-collapse-button" and n1:
         return not is_open1, False, False, False
     elif button_id == "QC-collapse-button" and n2:
@@ -74,7 +72,6 @@ def update_downsample_counts_slider_output(value, session_ID):
     [Input('min_max_genes_slider', 'value')]
 )
 def update_min_max_genes_output(value):
-    print("[STATUS] [min_genes, max_genes] updated to " + str(value))
     return ("[min_genes, max_genes] = " + str(value))
 
 @app.callback(
@@ -82,7 +79,6 @@ def update_min_max_genes_output(value):
     [Input('min_cells_slider', 'value')]
 )
 def update_min_cells_output(value):
-    print("[STATUS] min_cells updated to " + str(value))
     return ("min_cells = " + str(value))
 
 @app.callback(
@@ -90,7 +86,6 @@ def update_min_cells_output(value):
     [Input('n_top_genes_slider', 'value')]
 )
 def update_n_top_genes_output(value):
-    print("[STATUS] n_top_genes updated to " + str(value))
     return ("# highly variable genes = " + str(value))
 
 @app.callback(
@@ -98,7 +93,6 @@ def update_n_top_genes_output(value):
     [Input('n_neighbors_slider', 'value')]
 )
 def update_n_neighbors_output(value):
-    print("[STATUS] n_neighbors updated to " + str(value))
     return ("n_neighbors = " + str(value))
 
 
@@ -107,7 +101,6 @@ def update_n_neighbors_output(value):
     [Input('clustering_resolution_slider', 'value')]
 )
 def update_clustering_resolution_output(value):
-    print("[STATUS] clustering resolution updated to " + str(value))
     return "clustering resolution = " + str(value)
 
 @app.callback(
@@ -138,7 +131,6 @@ def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
                             flavor="cell_ranger", n_comps=50, random_state=0):
     
     default_return = [dash.no_update, dash.no_update]
-    print("[STATUS] refreshing processing UMAP plot")
     # figure out which button was pressed - what refresh functions to call
     ctx = dash.callback_context
     if not ctx.triggered:
@@ -185,7 +177,6 @@ def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
         cache_progress(session_ID, progress=int(4/n_steps * 100))
 
     elif(button_id == "refresh_all_button"):
-        print("[DEBUG] refresh_all_button clicked")
         if (all_btn_clicks in [None, 0]):
             return default_return
 
@@ -195,7 +186,6 @@ def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
             return default_return
         cache_progress(session_ID, progress=int(1/n_steps * 100))
 
-        print("[STATUS] refreshing everything")
         adata = downsample_adata(session_ID, adata, pct_cells=pct_cells,
                                  pct_counts=pct_counts) 
         cache_progress(session_ID, progress=int(2/n_steps * 100))
@@ -241,9 +231,6 @@ def refresh_processing_UMAP(all_btn_clicks, proj_btn_clicks,
     if (processing_plot_type in [0, "", None, []]):
         return default_return
 
-    print("[STATUS] updating plot by: " + str(processing_plot_type))
-    #adata.obs["cell_numeric_index"] = pd.to_numeric(list(range(0,len(adata.obs.index))))
-
     if (processing_plot_type == "leiden_n"):
         return plot_UMAP(session_ID, "leiden", n_dim=n_dim_proj_plot), "processing successful"
     elif (processing_plot_type == "pseudotime"):
@@ -267,7 +254,6 @@ def refresh_violin_QC_plot(selected_QC, session_ID):
     if (selected_QC in [None, 0, []]):
         return default_return
 
-    print("[STATUS] updating violin gene plot")
     if (adata_cache_exists(session_ID) is False):
         return default_return
 
