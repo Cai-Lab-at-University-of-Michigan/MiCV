@@ -1,4 +1,4 @@
- <img src="https://github.com/cailabumich/MiCV/blob/master/images/MiCV_logo.png" width="500" height="140">
+ <img src="https://github.com/Cai-Lab-at-University-of-Michigan/MiCV/blob/master/images/MiCV_logo.png" width="500" height="140">
 
 # MiCV
 A Multi-Informatic Cellular Visualization tool
