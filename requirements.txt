@@ -24,7 +24,7 @@ gevent==20.5.0
 zarr==2.4.0
 blosc==1.9.1
 filelock==3.0.12
-celery==4.4.2
+celery==5.2.2
 
 scanpy==1.5.1
 umap-learn==0.4.3
