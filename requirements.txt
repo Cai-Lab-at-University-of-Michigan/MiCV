@@ -12,7 +12,7 @@ flask==1.1.2
 flask_caching==1.8.0
 shortuuid==1.0.1
 bootstrap-flask
-flask-security-too==3.4.3
+flask-security-too==4.1.0
 email_validator
 flask-sqlalchemy
 bcrypt
